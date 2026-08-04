@@ -25,4 +25,6 @@ INSERT INTO tracked_wallets(id,chain,address,label) VALUES
  ('sol-1','SOLANA','HBWd7cSX5DrJiFTSSjuWhj5GV83kNtvJ8AutvgqLteTN','Solana Settlement 1'),
  ('sol-2','SOLANA','D338mf3WW935Ef3z3CceoQYzmJu2YYPft1HaedDk5MsD','Solana Settlement 2')
 ON CONFLICT DO NOTHING;`;
-await pool.query(sql); console.log("Database migrated and wallets seeded."); await pool.end();
+await pool.query(sql);
+console.log("Database migrated and wallets seeded.");
+await pool.end();

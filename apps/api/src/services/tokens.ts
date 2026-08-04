@@ -23,6 +23,12 @@ export type SolanaToken = {
 
 export const BSC_TOKENS: readonly BscToken[] = [
   {
+    symbol: "BTCB",
+    address: "0x7130d2a12b9bcbfae4f2634d864a1ee1ce3ead9c",
+    decimals: 18,
+    fixedUsdPrice: "25000",
+  },
+  {
     symbol: "USDT",
     address: "0x55d398326f99059ff775485246999027b3197955",
     decimals: 18,
@@ -33,12 +39,6 @@ export const BSC_TOKENS: readonly BscToken[] = [
     address: "0x8ac76a51cc950d9822d68b83fe1ad97b32cd580d",
     decimals: 18,
     fixedUsdPrice: "1",
-  },
-  {
-    symbol: "BTCB",
-    address: "0x7130d2a12b9bcbfae4f2634d864a1ee1ce3ead9c",
-    decimals: 18,
-    fixedUsdPrice: "25000",
   },
 ] as const;
 
