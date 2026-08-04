@@ -54,15 +54,14 @@ const transferInterface = new Interface([
 
 const transferTopic = id("Transfer(address,address,uint256)");
 
-function cursorKey(walletAddress: string, tokenSymbol: string): string {
+function cursorKey(walletAddress: string, token: BscToken): string {
   return [
     "bsc",
     normalizeAddress(walletAddress),
-    tokenSymbol,
+    normalizeAddress(token.address),
     "last-indexed-block",
   ].join(":");
 }
-
 function normalizeAddress(value: string): string {
   return value.trim().toLowerCase();
 }
@@ -172,14 +171,12 @@ async function getTrackedWallets(): Promise<string[]> {
 
 async function getStartingBlock(
   walletAddress: string,
-  tokenSymbol: string,
+  token: BscToken,
   latestBlock: number
 ): Promise<number> {
-  const key = cursorKey(walletAddress, tokenSymbol);
+  const key = cursorKey(walletAddress, token);
 
-  const result = await pool.query<{
-    value: string;
-  }>(
+  const result = await pool.query<{ value: string }>(
     `
       SELECT value
       FROM sync_state
@@ -203,10 +200,10 @@ async function getStartingBlock(
 
 async function saveCursor(
   walletAddress: string,
-  tokenSymbol: string,
+  token: BscToken,
   blockNumber: number
 ): Promise<void> {
-  const key = cursorKey(walletAddress, tokenSymbol);
+  const key = cursorKey(walletAddress, token);
 
   await pool.query(
     `
@@ -427,7 +424,7 @@ async function processLogs(input: ProcessLogsInput): Promise<number> {
   return storedCount;
 }
 
-async function syncWalletToken(input: {
+export async function syncBscWalletToken(input: {
   walletAddress: string;
   token: BscToken;
   latestBlock: number;
@@ -439,13 +436,13 @@ async function syncWalletToken(input: {
 
   let currentBlock = await getStartingBlock(
     normalizedWallet,
-    input.token.symbol,
+    input.token,
     input.latestBlock
   );
 
   if (currentBlock > input.latestBlock) {
     console.info(
-      `[bsc] ${normalizedWallet} ${input.token.symbol} already current`
+      `[bsc] ${normalizedWallet} ` + `${input.token.symbol} already current`
     );
 
     return 0;
@@ -459,8 +456,10 @@ async function syncWalletToken(input: {
   let storedTotal = 0;
 
   console.info(
-    `[bsc] Starting ${input.token.symbol} sync for ${normalizedWallet}`,
+    `[bsc] Starting ${input.token.symbol} backup sync ` +
+      `for ${normalizedWallet}`,
     {
+      contract: input.token.address,
       fromBlock: currentBlock,
       latestBlock: input.latestBlock,
       initialChunkSize: chunkSize,
@@ -471,12 +470,6 @@ async function syncWalletToken(input: {
     const toBlock = Math.min(input.latestBlock, currentBlock + chunkSize - 1);
 
     try {
-      console.info(
-        `[bsc] ${normalizedWallet} ${input.token.symbol} ` +
-          `processing ${currentBlock}-${toBlock} ` +
-          `(chunk ${chunkSize})`
-      );
-
       const incomingLogs = await readLogs({
         token: input.token,
         walletAddress: normalizedWallet,
@@ -494,7 +487,8 @@ async function syncWalletToken(input: {
       });
 
       console.info(
-        `[bsc] ${normalizedWallet} ${input.token.symbol} ` +
+        `[bsc] ${normalizedWallet} ` +
+          `${input.token.symbol} ` +
           `${currentBlock}-${toBlock}: ` +
           `${incomingLogs.length} inflows, ` +
           `${outgoingLogs.length} outflows`
@@ -518,15 +512,12 @@ async function syncWalletToken(input: {
 
       storedTotal += incomingStored + outgoingStored;
 
-      await saveCursor(normalizedWallet, input.token.symbol, toBlock);
+      await saveCursor(normalizedWallet, input.token, toBlock);
 
       currentBlock = toBlock + 1;
 
       if (chunkSize < config.BSC_MAX_CHUNK_SIZE) {
-        chunkSize = Math.min(
-          config.BSC_MAX_CHUNK_SIZE,
-          Math.max(chunkSize + 1, Math.floor(chunkSize * 1.25))
-        );
+        chunkSize = Math.min(config.BSC_MAX_CHUNK_SIZE, chunkSize + 250);
       }
 
       if (config.BSC_CHUNK_DELAY_MS > 0) {
@@ -542,25 +533,24 @@ async function syncWalletToken(input: {
         console.warn(
           `[bsc] RPC rejected ${normalizedWallet} ` +
             `${input.token.symbol} blocks ` +
-            `${currentBlock}-${toBlock}. ` +
-            `Reducing chunk from ${chunkSize} ` +
-            `to ${reducedChunkSize}.`
+            `${currentBlock}-${toBlock}; ` +
+            `reducing chunk from ${chunkSize} ` +
+            `to ${reducedChunkSize}`
         );
 
         chunkSize = reducedChunkSize;
         continue;
       }
 
-      console.error(
-        `[bsc] Failed ${normalizedWallet} ` +
-          `${input.token.symbol} at blocks ` +
-          `${currentBlock}-${toBlock}`,
-        error
-      );
-
       throw error;
     }
   }
+
+  console.info(
+    `[bsc] Backup sync completed for ` +
+      `${normalizedWallet} ${input.token.symbol}; ` +
+      `${storedTotal} records stored`
+  );
 
   return storedTotal;
 }
@@ -599,7 +589,7 @@ export async function syncBsc(): Promise<void> {
 
     for (const token of BSC_TOKENS) {
       try {
-        const stored = await syncWalletToken({
+        const stored = await syncBscWalletToken({
           walletAddress: normalizedWallet,
           token,
           latestBlock,
@@ -622,4 +612,21 @@ export async function syncBsc(): Promise<void> {
   }
 
   console.info(`[bsc] Synchronization complete; ${totalStored} records stored`);
+}
+
+export async function syncSingleBscContract(input: {
+  walletAddress: string;
+  token: BscToken;
+}): Promise<number> {
+  const latestBlock = await withRetry(
+    () => provider.getBlockNumber(),
+    "latest-block"
+  );
+
+  return syncBscWalletToken({
+    walletAddress: normalizeAddress(input.walletAddress),
+    token: input.token,
+    latestBlock,
+    blockTimestampCache: new Map<number, number>(),
+  });
 }

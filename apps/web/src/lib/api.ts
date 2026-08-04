@@ -1,5 +1,8 @@
 import type { DashboardResponse } from "@oynk/shared";
-const API = (import.meta.env.VITE_API_URL ?? "").replace(/\/+$/, "");
+const API = (import.meta.env.VITE_API_URL ?? "https://api.oynk.io").replace(
+  /\/+$/,
+  ""
+);
 export async function getDashboard(chain = "ALL"): Promise<DashboardResponse> {
   const q = chain === "ALL" ? "" : `?chain=${chain}`;
   const r = await fetch(`${API}/api/dashboard${q}`);

@@ -7,6 +7,9 @@ import { multiplyDecimalStrings } from "../utils/decimal.js";
 
 const connection = new Connection(config.SOLANA_RPC_URL, "confirmed");
 
+type Direction = "INFLOW" | "OUTFLOW";
+type TransferStatus = "CONFIRMED" | "FAILED";
+
 type OwnerBalance = {
   rawAmount: bigint;
   decimals: number;
@@ -17,6 +20,14 @@ type MintOwnerBalances = Map<string, Map<string, OwnerBalance>>;
 type SyncStateRow = {
   value: string;
 };
+
+type SignatureInfo = Awaited<
+  ReturnType<Connection["getSignaturesForAddress"]>
+>[number];
+
+const SOLANA_PAGE_DELAY_MS = 250;
+const SOLANA_TRANSACTION_DELAY_MS = 200;
+const SOLANA_MAX_SIGNATURE_PAGES = 10_000;
 
 function sleep(milliseconds: number): Promise<void> {
   return new Promise((resolve) => {
@@ -42,7 +53,8 @@ function isRetryableRpcError(error: unknown): boolean {
     message.includes("connection reset") ||
     message.includes("temporarily unavailable") ||
     message.includes("bad gateway") ||
-    message.includes("gateway timeout")
+    message.includes("gateway timeout") ||
+    message.includes("fetch failed")
   );
 }
 
@@ -64,8 +76,8 @@ async function withRetry<T>(
       }
 
       console.warn(
-        `[solana] ${label} failed. Retrying in ` +
-          `${delayMilliseconds}ms ` +
+        `[solana] ${label} failed. ` +
+          `Retrying in ${delayMilliseconds}ms ` +
           `(${attempt}/${attempts})`
       );
 
@@ -76,6 +88,10 @@ async function withRetry<T>(
   }
 
   throw new Error(`${label} exhausted retries`);
+}
+
+function absoluteBigInt(value: bigint): bigint {
+  return value < 0n ? -value : value;
 }
 
 function formatTokenAmount(rawAmount: bigint, decimals: number): string {
@@ -166,8 +182,10 @@ function findCounterparty(input: {
     input.mint
   );
 
-  let bestOwner = "Unknown";
-  let bestDifference = 0n;
+  const trackedMagnitude = absoluteBigInt(input.trackedDelta);
+
+  let bestOwner: string | null = null;
+  let bestDifference: bigint | null = null;
 
   for (const owner of owners) {
     if (owner === input.trackedWallet) {
@@ -196,23 +214,38 @@ function findCounterparty(input: {
       continue;
     }
 
-    const ownerDifference = ownerDelta < 0n ? -ownerDelta : ownerDelta;
+    const ownerMagnitude = absoluteBigInt(ownerDelta);
 
-    const trackedDifference =
-      input.trackedDelta < 0n ? -input.trackedDelta : input.trackedDelta;
+    const difference =
+      ownerMagnitude > trackedMagnitude
+        ? ownerMagnitude - trackedMagnitude
+        : trackedMagnitude - ownerMagnitude;
 
-    const amountDifference =
-      ownerDifference > trackedDifference
-        ? ownerDifference - trackedDifference
-        : trackedDifference - ownerDifference;
-
-    if (bestOwner === "Unknown" || amountDifference < bestDifference) {
+    if (bestDifference === null || difference < bestDifference) {
       bestOwner = owner;
-      bestDifference = amountDifference;
+      bestDifference = difference;
     }
   }
 
-  return bestOwner;
+  return bestOwner ?? "Unknown";
+}
+
+function stateKeyForWallet(walletAddress: string, mintFilter?: string): string {
+  if (mintFilter) {
+    return [
+      "solana",
+      walletAddress,
+      mintFilter,
+      "newest-indexed-signature",
+    ].join(":");
+  }
+
+  return [
+    "solana",
+    walletAddress,
+    "all-supported-mints",
+    "newest-indexed-signature",
+  ].join(":");
 }
 
 async function getStoredSignature(
@@ -220,10 +253,10 @@ async function getStoredSignature(
 ): Promise<string | undefined> {
   const result = await pool.query<SyncStateRow>(
     `
-      SELECT value
-      FROM sync_state
-      WHERE key = $1
-    `,
+        SELECT value
+        FROM sync_state
+        WHERE key = $1
+      `,
     [stateKey]
   );
 
@@ -251,40 +284,257 @@ async function saveStoredSignature(
   );
 }
 
-export async function syncSolanaWallet(walletAddress: string): Promise<void> {
+async function fetchSolanaSignatures(input: {
+  publicKey: PublicKey;
+  newestStoredSignature?: string;
+}): Promise<SignatureInfo[]> {
+  const allSignatures: SignatureInfo[] = [];
+
+  const seenSignatures = new Set<string>();
+
+  let before: string | undefined;
+
+  for (
+    let pageNumber = 1;
+    pageNumber <= SOLANA_MAX_SIGNATURE_PAGES;
+    pageNumber += 1
+  ) {
+    const page = await withRetry(
+      () =>
+        connection.getSignaturesForAddress(
+          input.publicKey,
+          {
+            limit: config.SOLANA_SIGNATURE_LIMIT,
+            before,
+            until: input.newestStoredSignature,
+          },
+          "confirmed"
+        ),
+      `signatures:${input.publicKey.toBase58()}:page:${pageNumber}`
+    );
+
+    console.info(
+      `[solana] ${input.publicKey.toBase58()} ` +
+        `signature page ${pageNumber}: ` +
+        `${page.length} records`
+    );
+
+    if (page.length === 0) {
+      break;
+    }
+
+    let newlyAdded = 0;
+
+    for (const signatureInfo of page) {
+      if (seenSignatures.has(signatureInfo.signature)) {
+        continue;
+      }
+
+      seenSignatures.add(signatureInfo.signature);
+
+      allSignatures.push(signatureInfo);
+
+      newlyAdded += 1;
+    }
+
+    if (newlyAdded === 0) {
+      console.warn(
+        `[solana] Pagination produced no ` +
+          `new signatures for ` +
+          input.publicKey.toBase58()
+      );
+
+      break;
+    }
+
+    if (page.length < config.SOLANA_SIGNATURE_LIMIT) {
+      break;
+    }
+
+    const oldestSignature = page[page.length - 1]?.signature;
+
+    if (!oldestSignature) {
+      break;
+    }
+
+    if (oldestSignature === before) {
+      throw new Error(
+        `Solana pagination cursor did not advance for ` +
+          input.publicKey.toBase58()
+      );
+    }
+
+    before = oldestSignature;
+
+    await sleep(SOLANA_PAGE_DELAY_MS);
+  }
+
+  return allSignatures;
+}
+
+async function storeTransfer(input: {
+  walletAddress: string;
+  signature: string;
+  transferIndex: number;
+  slot: number;
+  blockTime: number;
+  mint: string;
+  symbol: string;
+  decimals: number;
+  rawAmount: bigint;
+  amount: string;
+  usdValue: string;
+  direction: Direction;
+  counterparty: string;
+  status: TransferStatus;
+}): Promise<void> {
+  const explorerUrl = `https://solscan.io/tx/` + input.signature;
+
+  const transferId = [
+    "SOLANA",
+    input.signature,
+    String(input.transferIndex),
+    input.walletAddress,
+    input.direction,
+    input.mint,
+  ].join(":");
+
+  await pool.query(
+    `
+      INSERT INTO transfers (
+        id,
+        chain,
+        wallet_address,
+        tx_hash,
+        log_index,
+        block_number,
+        block_time,
+        direction,
+        token_address,
+        asset_symbol,
+        decimals,
+        raw_amount,
+        amount,
+        usd_value,
+        counterparty,
+        status,
+        explorer_url
+      )
+      VALUES (
+        $1,
+        'SOLANA',
+        $2,
+        $3,
+        $4,
+        $5,
+        to_timestamp($6),
+        $7,
+        $8,
+        $9,
+        $10,
+        $11,
+        $12,
+        $13,
+        $14,
+        $15,
+        $16
+      )
+      ON CONFLICT (
+        chain,
+        tx_hash,
+        log_index,
+        wallet_address,
+        direction
+      )
+      DO UPDATE SET
+        block_number =
+          EXCLUDED.block_number,
+        block_time =
+          EXCLUDED.block_time,
+        token_address =
+          EXCLUDED.token_address,
+        asset_symbol =
+          EXCLUDED.asset_symbol,
+        decimals =
+          EXCLUDED.decimals,
+        raw_amount =
+          EXCLUDED.raw_amount,
+        amount =
+          EXCLUDED.amount,
+        usd_value =
+          EXCLUDED.usd_value,
+        counterparty =
+          EXCLUDED.counterparty,
+        status =
+          EXCLUDED.status,
+        explorer_url =
+          EXCLUDED.explorer_url
+    `,
+    [
+      transferId,
+      input.walletAddress,
+      input.signature,
+      input.transferIndex,
+      String(input.slot),
+      input.blockTime,
+      input.direction,
+      input.mint,
+      input.symbol,
+      input.decimals,
+      input.rawAmount.toString(),
+      input.amount,
+      input.usdValue,
+      input.counterparty,
+      input.status,
+      explorerUrl,
+    ]
+  );
+}
+
+export async function syncSolanaWallet(
+  walletAddress: string,
+  mintFilter?: string
+): Promise<void> {
   const publicKey = new PublicKey(walletAddress);
 
-  const stateKey = `solana:${walletAddress}:signature`;
+  if (mintFilter && !SOLANA_TOKENS.has(mintFilter)) {
+    throw new Error(`Unsupported Solana mint: ${mintFilter}`);
+  }
+
+  const stateKey = stateKeyForWallet(walletAddress, mintFilter);
 
   const newestStoredSignature = await getStoredSignature(stateKey);
 
-  const signatures = await withRetry(
-    () =>
-      connection.getSignaturesForAddress(
-        publicKey,
-        {
-          limit: config.SOLANA_SIGNATURE_LIMIT,
-          until: newestStoredSignature,
-        },
-        "confirmed"
-      ),
-    `signatures:${walletAddress}`
-  );
+  console.info(`[solana] Starting wallet ${walletAddress}`, {
+    mode: newestStoredSignature ? "incremental" : "historical-backfill",
+    mintFilter: mintFilter ?? "ALL_SUPPORTED",
+    cursor: newestStoredSignature ?? null,
+    pageLimit: config.SOLANA_SIGNATURE_LIMIT,
+  });
+
+  const signatures = await fetchSolanaSignatures({
+    publicKey,
+    newestStoredSignature,
+  });
 
   console.info(
-    `[solana] ${walletAddress}: ` + `${signatures.length} new signatures`
+    `[solana] ${walletAddress}: ` +
+      `${signatures.length} signatures ` +
+      `to inspect`
   );
 
   if (signatures.length === 0) {
     return;
   }
 
+  const newestFetchedSignature = signatures[0]?.signature;
+
+  if (!newestFetchedSignature) {
+    return;
+  }
+
   let storedTransfers = 0;
 
-  /*
-   * getSignaturesForAddress returns newest first.
-   * Process oldest first so records are inserted chronologically.
-   */
   for (const signatureInfo of [...signatures].reverse()) {
     const transaction = await withRetry(
       () =>
@@ -295,16 +545,22 @@ export async function syncSolanaWallet(walletAddress: string): Promise<void> {
       `transaction:${signatureInfo.signature}`
     );
 
-    if (
-      !transaction?.meta ||
-      transaction.blockTime === null ||
-      transaction.blockTime === undefined
-    ) {
-      console.warn(
-        `[solana] Skipping unavailable transaction ` + signatureInfo.signature
+    if (!transaction) {
+      throw new Error(
+        `Solana transaction unavailable: ` + signatureInfo.signature
       );
+    }
 
-      continue;
+    if (transaction.blockTime === null || transaction.blockTime === undefined) {
+      throw new Error(
+        `Solana transaction has no block time: ` + signatureInfo.signature
+      );
+    }
+
+    if (!transaction.meta) {
+      throw new Error(
+        `Solana transaction has no metadata: ` + signatureInfo.signature
+      );
     }
 
     const preBalances = aggregateBalances(transaction.meta.preTokenBalances);
@@ -316,6 +572,10 @@ export async function syncSolanaWallet(walletAddress: string): Promise<void> {
     let transferIndex = 0;
 
     for (const mint of mints) {
+      if (mintFilter && mint !== mintFilter) {
+        continue;
+      }
+
       const token = SOLANA_TOKENS.get(mint);
 
       if (!token) {
@@ -340,9 +600,9 @@ export async function syncSolanaWallet(walletAddress: string): Promise<void> {
         continue;
       }
 
-      const direction = delta > 0n ? "INFLOW" : "OUTFLOW";
+      const direction: Direction = delta > 0n ? "INFLOW" : "OUTFLOW";
 
-      const rawAmount = delta > 0n ? delta : -delta;
+      const rawAmount = absoluteBigInt(delta);
 
       const amount = formatTokenAmount(rawAmount, token.decimals);
 
@@ -356,95 +616,26 @@ export async function syncSolanaWallet(walletAddress: string): Promise<void> {
         trackedDelta: delta,
       });
 
-      const status = transaction.meta.err ? "FAILED" : "CONFIRMED";
+      const status: TransferStatus = transaction.meta.err
+        ? "FAILED"
+        : "CONFIRMED";
 
-      const explorerUrl = `https://solscan.io/tx/` + signatureInfo.signature;
-
-      await pool.query(
-        `
-          INSERT INTO transfers (
-            id,
-            chain,
-            wallet_address,
-            tx_hash,
-            log_index,
-            block_number,
-            block_time,
-            direction,
-            token_address,
-            asset_symbol,
-            decimals,
-            raw_amount,
-            amount,
-            usd_value,
-            counterparty,
-            status,
-            explorer_url
-          )
-          VALUES (
-            $1,
-            'SOLANA',
-            $2,
-            $3,
-            $4,
-            $5,
-            to_timestamp($6),
-            $7,
-            $8,
-            $9,
-            $10,
-            $11,
-            $12,
-            $13,
-            $14,
-            $15,
-            $16
-          )
-          ON CONFLICT (
-            chain,
-            tx_hash,
-            log_index,
-            wallet_address,
-            direction
-          )
-          DO UPDATE SET
-            block_number = EXCLUDED.block_number,
-            block_time = EXCLUDED.block_time,
-            token_address = EXCLUDED.token_address,
-            asset_symbol = EXCLUDED.asset_symbol,
-            decimals = EXCLUDED.decimals,
-            raw_amount = EXCLUDED.raw_amount,
-            amount = EXCLUDED.amount,
-            usd_value = EXCLUDED.usd_value,
-            counterparty = EXCLUDED.counterparty,
-            status = EXCLUDED.status,
-            explorer_url = EXCLUDED.explorer_url
-        `,
-        [
-          [
-            "SOLANA",
-            signatureInfo.signature,
-            String(transferIndex),
-            walletAddress,
-            direction,
-          ].join(":"),
-          walletAddress,
-          signatureInfo.signature,
-          transferIndex,
-          String(transaction.slot),
-          transaction.blockTime,
-          direction,
-          mint,
-          token.symbol,
-          token.decimals,
-          rawAmount.toString(),
-          amount,
-          usdValue,
-          counterparty,
-          status,
-          explorerUrl,
-        ]
-      );
+      await storeTransfer({
+        walletAddress,
+        signature: signatureInfo.signature,
+        transferIndex,
+        slot: transaction.slot,
+        blockTime: transaction.blockTime,
+        mint,
+        symbol: token.symbol,
+        decimals: token.decimals,
+        rawAmount,
+        amount,
+        usdValue,
+        direction,
+        counterparty,
+        status,
+      });
 
       storedTransfers += 1;
       transferIndex += 1;
@@ -453,21 +644,21 @@ export async function syncSolanaWallet(walletAddress: string): Promise<void> {
         `[solana] Stored ${direction} ` +
           `${amount} ${token.symbol} ` +
           `for ${walletAddress}; ` +
+          `mint=${mint}; ` +
+          `usd=${usdValue}; ` +
           `counterparty=${counterparty}`
       );
     }
 
-    await sleep(250);
+    await sleep(SOLANA_TRANSACTION_DELAY_MS);
   }
 
-  const newestFetchedSignature = signatures[0]?.signature;
-
-  if (newestFetchedSignature) {
-    await saveStoredSignature(stateKey, newestFetchedSignature);
-  }
+  await saveStoredSignature(stateKey, newestFetchedSignature);
 
   console.info(
     `[solana] ${walletAddress}: ` +
-      `${storedTransfers} supported transfers stored`
+      `${storedTransfers} supported transfers stored; ` +
+      `mint=${mintFilter ?? "ALL_SUPPORTED"}; ` +
+      `cursor=${newestFetchedSignature}`
   );
 }
