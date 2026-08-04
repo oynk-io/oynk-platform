@@ -4,7 +4,7 @@ import cors from "cors";
 import express from "express";
 import helmet from "helmet";
 
-import { config } from "./config.js";
+import { allowedOrigins, config } from "./config.js";
 import { syncAll } from "./services/syncService.js";
 import { dashboardRouter } from "./routes/dashboardRoutes.js";
 
@@ -15,25 +15,25 @@ const app = express();
 const server = http.createServer(app);
 
 app.use(
-  helmet({
-    crossOriginResourcePolicy: false,
-  })
+	helmet({
+		crossOriginResourcePolicy: false,
+	}),
 );
 
 app.use(
-  cors({
-    origin: config.WEB_ORIGIN,
-    credentials: true,
-  })
+	cors({
+		origin: allowedOrigins,
+		credentials: true,
+	}),
 );
 
 app.use(express.json({ limit: "256kb" }));
 
 app.get("/api/health", (_request, response) => {
-  response.json({
-    ok: true,
-    service: "oynk-crossborder-dashboard-api",
-  });
+	response.json({
+		ok: true,
+		service: "oynk-crossborder-dashboard-api",
+	});
 });
 
 app.use("/api/dashboard", dashboardRouter);
@@ -41,21 +41,21 @@ app.use("/api/dashboard", dashboardRouter);
 // app.use("/api/dashboard", createDashboardRouter());
 
 server.listen(config.API_PORT, "0.0.0.0", () => {
-  console.info(
-    `Oynk dashboard API on ` + `http://localhost:${config.API_PORT}`
-  );
+	console.info(
+		`Oynk dashboard API on ` + `http://localhost:${config.API_PORT}`,
+	);
 
-  if (config.SYNC_ON_START) {
-    void syncAll().catch((error) => {
-      console.error("[sync] Initial synchronization failed", error);
-    });
-  }
+	if (config.SYNC_ON_START) {
+		void syncAll().catch((error) => {
+			console.error("[sync] Initial synchronization failed", error);
+		});
+	}
 
-  const intervalMilliseconds = config.SYNC_INTERVAL_MINUTES * 60 * 1_000;
+	const intervalMilliseconds = config.SYNC_INTERVAL_MINUTES * 60 * 1_000;
 
-  setInterval(() => {
-    void syncAll().catch((error) => {
-      console.error("[sync] Scheduled synchronization failed", error);
-    });
-  }, intervalMilliseconds);
+	setInterval(() => {
+		void syncAll().catch((error) => {
+			console.error("[sync] Scheduled synchronization failed", error);
+		});
+	}, intervalMilliseconds);
 });
