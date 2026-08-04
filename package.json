@@ -1,0 +1,13 @@
+{
+  "name": "oynk-crossborder-dashboard",
+  "version": "1.0.0",
+  "private": true,
+  "packageManager": "pnpm@10.34.5",
+  "scripts": {
+    "dev": "pnpm --parallel --filter @oynk/shared --filter @oynk/api --filter @oynk/web dev",
+    "build": "pnpm --filter @oynk/shared build && pnpm --filter @oynk/api build && pnpm --filter @oynk/web build",
+    "typecheck": "pnpm --filter @oynk/shared typecheck && pnpm --filter @oynk/api typecheck && pnpm --filter @oynk/web typecheck",
+    "db:migrate": "pnpm --filter @oynk/api db:migrate",
+    "sync": "pnpm --filter @oynk/api sync"
+  }
+}
