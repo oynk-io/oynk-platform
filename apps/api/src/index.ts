@@ -8,9 +8,6 @@ import { allowedOrigins, config } from "./config.js";
 import { syncAll } from "./services/syncService.js";
 import { dashboardRouter } from "./routes/dashboardRoutes.js";
 
-// Keep your existing route imports here.
-// import { createDashboardRouter } from "./routes/dashboardRoutes.js";
-
 const app = express();
 const server = http.createServer(app);
 
@@ -37,8 +34,6 @@ app.get("/api/health", (_request, response) => {
 });
 
 app.use("/api/dashboard", dashboardRouter);
-// Keep your existing API routes here.
-// app.use("/api/dashboard", createDashboardRouter());
 
 server.listen(config.API_PORT, "0.0.0.0", () => {
 	console.info(

@@ -20,6 +20,7 @@ type MetricsRow = {
   active_wallets: string;
   paired_transfer_count: string;
   last_synced_at: Date | string | null;
+  latest_transaction_at: Date | string | null;
 };
 
 type TimelineRow = {
@@ -49,6 +50,16 @@ type TransferDatabaseRow = {
   explorer_url: string;
   pair_id: string | null;
   pair_explorer_url: string | null;
+  pair_chain: Chain | null;
+  pair_wallet_address: string | null;
+  pair_tx_hash: string | null;
+  pair_block_time: Date | string | null;
+  pair_direction: TransferDirection | null;
+  pair_asset_symbol: string | null;
+  pair_amount: string | null;
+  pair_usd_value: string | null;
+  pair_counterparty: string | null;
+  pair_status: TransferStatus | null;
 };
 
 function chainCondition(
@@ -116,11 +127,16 @@ export async function getDashboardData(
   
           COUNT(*)::TEXT AS transfer_count,
   
-          COUNT(*)
-            FILTER (WHERE pair_id IS NOT NULL)::TEXT
+          (COUNT(*)
+            FILTER (WHERE pair_id IS NOT NULL) / 2)::TEXT
             AS paired_transfer_count,
   
-          MAX(block_time) AS last_synced_at,
+          MAX(block_time) AS latest_transaction_at,
+
+          (
+            SELECT MAX(updated_at)
+            FROM sync_state
+          ) AS last_synced_at,
   
           (
             SELECT COUNT(*)::TEXT
@@ -137,9 +153,9 @@ export async function getDashboardData(
 
   const timelineWhere =
     chain === "ALL"
-      ? "WHERE block_time >= NOW() - INTERVAL '30 days'"
+      ? "WHERE block_time >= NOW() - INTERVAL '365 days'"
       : `
-          WHERE block_time >= NOW() - INTERVAL '30 days'
+          WHERE block_time >= NOW() - INTERVAL '365 days'
             AND chain = $1
         `;
 
@@ -171,7 +187,13 @@ export async function getDashboardData(
     filter.values
   );
 
-  const transferWhere = chain === "ALL" ? "" : "WHERE transfer.chain = $1";
+  const transferWhere =
+    chain === "ALL"
+      ? "WHERE (transfer.pair_id IS NULL OR transfer.direction = 'INFLOW')"
+      : `
+          WHERE (transfer.chain = $1 OR paired.chain = $1)
+            AND (transfer.pair_id IS NULL OR transfer.direction = 'INFLOW')
+        `;
 
   const transfersResult = await pool.query<TransferDatabaseRow>(
     `
@@ -193,7 +215,17 @@ export async function getDashboardData(
             transfer.status,
             transfer.explorer_url,
             transfer.pair_id,
-            paired.explorer_url AS pair_explorer_url
+            paired.explorer_url AS pair_explorer_url,
+            paired.chain AS pair_chain,
+            paired.wallet_address AS pair_wallet_address,
+            paired.tx_hash AS pair_tx_hash,
+            paired.block_time AS pair_block_time,
+            paired.direction AS pair_direction,
+            paired.asset_symbol AS pair_asset_symbol,
+            paired.amount::TEXT AS pair_amount,
+            paired.usd_value::TEXT AS pair_usd_value,
+            paired.counterparty AS pair_counterparty,
+            paired.status AS pair_status
           FROM transfers transfer
           LEFT JOIN transfers paired
             ON paired.id = transfer.pair_id
@@ -223,6 +255,34 @@ export async function getDashboardData(
     explorerUrl: row.explorer_url,
     pairId: row.pair_id,
     pairExplorerUrl: row.pair_explorer_url,
+    pairedLeg:
+      row.pair_id &&
+      row.pair_chain &&
+      row.pair_wallet_address &&
+      row.pair_tx_hash &&
+      row.pair_block_time &&
+      row.pair_direction &&
+      row.pair_asset_symbol &&
+      row.pair_amount &&
+      row.pair_usd_value &&
+      row.pair_counterparty &&
+      row.pair_status &&
+      row.pair_explorer_url
+        ? {
+            id: row.pair_id,
+            chain: row.pair_chain,
+            walletAddress: row.pair_wallet_address,
+            txHash: row.pair_tx_hash,
+            timestamp: toIsoString(row.pair_block_time),
+            direction: row.pair_direction,
+            assetSymbol: row.pair_asset_symbol,
+            amount: row.pair_amount,
+            usdValue: row.pair_usd_value,
+            counterparty: row.pair_counterparty,
+            status: row.pair_status,
+            explorerUrl: row.pair_explorer_url,
+          }
+        : null,
   }));
 
   return {
@@ -237,6 +297,9 @@ export async function getDashboardData(
       pairedTransferCount: Number(metricsRow?.paired_transfer_count ?? 0),
       lastSyncedAt: metricsRow?.last_synced_at
         ? toIsoString(metricsRow.last_synced_at)
+        : null,
+      latestTransactionAt: metricsRow?.latest_transaction_at
+        ? toIsoString(metricsRow.latest_transaction_at)
         : null,
     },
 

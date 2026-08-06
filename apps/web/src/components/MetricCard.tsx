@@ -1,2 +1,23 @@
 import type { LucideIcon } from "lucide-react";
-export function MetricCard({label,value,sub,icon:Icon}:{label:string;value:string;sub:string;icon:LucideIcon}){return <div className="rounded-2xl border border-white/8 bg-white/[.045] p-5 shadow-[0_18px_50px_rgba(0,0,0,.18)]"><div className="flex items-center justify-between"><span className="text-sm text-slate-400">{label}</span><span className="rounded-xl border border-emerald-400/15 bg-emerald-400/10 p-2 text-emerald-300"><Icon size={17}/></span></div><div className="mt-4 text-2xl font-semibold tracking-tight text-white">{value}</div><div className="mt-1 text-xs text-slate-500">{sub}</div></div>}
+
+type MetricCardProps = {
+  label: string;
+  value: string;
+  sub: string;
+  icon: LucideIcon;
+};
+
+export function MetricCard({ label, value, sub, icon: Icon }: MetricCardProps) {
+  return (
+    <article className="metric-card rounded-2xl border border-white/8 bg-white/[.04] p-5">
+      <div className="flex items-center justify-between gap-3">
+        <span className="text-sm font-medium text-slate-400">{label}</span>
+        <span className="rounded-lg border border-emerald-300/15 bg-emerald-300/8 p-2 text-emerald-300" aria-hidden="true">
+          <Icon size={17} />
+        </span>
+      </div>
+      <div className="mt-5 text-2xl font-semibold tracking-tight text-white tabular-nums">{value}</div>
+      <div className="mt-1.5 text-xs leading-5 text-slate-500">{sub}</div>
+    </article>
+  );
+}

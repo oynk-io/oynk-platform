@@ -1,7 +1,11 @@
 import { Router } from "express";
 
 import { getDashboardData } from "../services/dashboardService.js";
-import { syncAll } from "../services/syncService.js";
+import {
+  getSyncStatus,
+  isSyncRunning,
+  syncAll,
+} from "../services/syncService.js";
 
 export const dashboardRouter = Router();
 
@@ -33,12 +37,25 @@ dashboardRouter.get("/", async (request, response) => {
 });
 
 dashboardRouter.post("/sync", async (_request, response) => {
+  if (isSyncRunning()) {
+    response.status(409).json({
+      error: "Synchronization is already running",
+      status: getSyncStatus(),
+    });
+
+    return;
+  }
+
   void syncAll().catch((error) => {
     console.error("[dashboard] Manual sync failed", error);
   });
 
   response.status(202).json({
     accepted: true,
-    message: "Synchronization started",
+    status: getSyncStatus(),
   });
+});
+
+dashboardRouter.get("/sync", (_request, response) => {
+  response.json(getSyncStatus());
 });

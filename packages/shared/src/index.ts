@@ -14,6 +14,7 @@ export type DashboardMetrics = {
   activeWallets: number;
   pairedTransferCount: number;
   lastSyncedAt: string | null;
+  latestTransactionAt: string | null;
 };
 
 export type TimelinePoint = {
@@ -49,10 +50,41 @@ export type TransferRow = {
 
   pairId: string | null;
   pairExplorerUrl: string | null;
+  pairedLeg: TransferLeg | null;
+};
+
+export type TransferLeg = {
+  id: string;
+  chain: Chain;
+  walletAddress: string;
+  txHash: string;
+  timestamp: string;
+  direction: TransferDirection;
+  assetSymbol: string;
+  amount: string;
+  usdValue: string;
+  counterparty: string;
+  status: TransferStatus;
+  explorerUrl: string;
 };
 
 export type DashboardResponse = {
   metrics: DashboardMetrics;
   timeline: TimelinePoint[];
   transfers: TransferRow[];
+};
+
+export type SyncState = "IDLE" | "RUNNING" | "COMPLETED" | "PARTIAL" | "FAILED";
+
+export type SynchronizationStatus = {
+  state: SyncState;
+  startedAt: string | null;
+  completedAt: string | null;
+  successfulChains: Chain[];
+  failedChains: Chain[];
+};
+
+export type SynchronizationAcceptedResponse = {
+  accepted: true;
+  status: SynchronizationStatus;
 };
