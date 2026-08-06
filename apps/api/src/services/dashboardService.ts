@@ -21,6 +21,10 @@ type MetricsRow = {
   paired_transfer_count: string;
   last_synced_at: Date | string | null;
   latest_transaction_at: Date | string | null;
+  paired_settlement_usd: string;
+  unmatched_transfer_usd: string;
+  settlement_count: string;
+  latest_indexed_block: string | null;
 };
 
 type TimelineRow = {
@@ -97,6 +101,11 @@ export async function getDashboardData(
           SELECT *
           FROM transfers
           ${filter.sql}
+        ), paired_settlements AS (
+          SELECT LEAST(a.usd_value, b.usd_value) AS settled_value
+          FROM filtered_transfers a
+          JOIN filtered_transfers b ON b.id = a.pair_id
+          WHERE a.id < b.id AND a.pairing_method = 'REFERENCE'
         )
         SELECT
           COALESCE(SUM(usd_value), 0)::TEXT AS total_usd,
@@ -128,14 +137,20 @@ export async function getDashboardData(
           COUNT(*)::TEXT AS transfer_count,
   
           (COUNT(*)
-            FILTER (WHERE pair_id IS NOT NULL) / 2)::TEXT
+            FILTER (WHERE pair_id IS NOT NULL AND pairing_method = 'REFERENCE') / 2)::TEXT
             AS paired_transfer_count,
   
           MAX(block_time) AS latest_transaction_at,
 
+          COALESCE((SELECT SUM(settled_value) FROM paired_settlements), 0)::TEXT AS paired_settlement_usd,
+          COALESCE(SUM(usd_value) FILTER (WHERE pair_id IS NULL OR pairing_method IS DISTINCT FROM 'REFERENCE'), 0)::TEXT AS unmatched_transfer_usd,
+          (SELECT COUNT(*) FROM paired_settlements)::TEXT AS settlement_count,
+          MAX(block_number::NUMERIC)::TEXT AS latest_indexed_block,
+
           (
-            SELECT MAX(updated_at)
-            FROM sync_state
+            SELECT MAX(completed_at)
+            FROM sync_runs
+            WHERE status IN ('COMPLETED', 'PARTIAL')
           ) AS last_synced_at,
   
           (
@@ -189,10 +204,10 @@ export async function getDashboardData(
 
   const transferWhere =
     chain === "ALL"
-      ? "WHERE (transfer.pair_id IS NULL OR transfer.direction = 'INFLOW')"
+      ? "WHERE (transfer.pair_id IS NULL OR transfer.pairing_method IS DISTINCT FROM 'REFERENCE' OR transfer.direction = 'INFLOW')"
       : `
           WHERE (transfer.chain = $1 OR paired.chain = $1)
-            AND (transfer.pair_id IS NULL OR transfer.direction = 'INFLOW')
+            AND (transfer.pair_id IS NULL OR transfer.pairing_method IS DISTINCT FROM 'REFERENCE' OR transfer.direction = 'INFLOW')
         `;
 
   const transfersResult = await pool.query<TransferDatabaseRow>(
@@ -214,7 +229,7 @@ export async function getDashboardData(
             transfer.counterparty,
             transfer.status,
             transfer.explorer_url,
-            transfer.pair_id,
+            CASE WHEN transfer.pairing_method = 'REFERENCE' THEN transfer.pair_id ELSE NULL END AS pair_id,
             paired.explorer_url AS pair_explorer_url,
             paired.chain AS pair_chain,
             paired.wallet_address AS pair_wallet_address,
@@ -229,8 +244,12 @@ export async function getDashboardData(
           FROM transfers transfer
           LEFT JOIN transfers paired
             ON paired.id = transfer.pair_id
+           AND transfer.pairing_method = 'REFERENCE'
           ${transferWhere}
-          ORDER BY transfer.block_time DESC
+          ORDER BY transfer.block_time DESC,
+                   transfer.chain ASC,
+                   transfer.block_number::NUMERIC DESC NULLS LAST,
+                   transfer.log_index DESC
           LIMIT 500
         `,
     filter.values
@@ -287,6 +306,16 @@ export async function getDashboardData(
 
   return {
     metrics: {
+      grossTransferVolumeUsd: Number(metricsRow?.total_usd ?? 0),
+      inflowVolumeUsd: Number(metricsRow?.inflow_usd ?? 0),
+      outflowVolumeUsd: Number(metricsRow?.outflow_usd ?? 0),
+      estimatedSettledVolumeUsd: Number(metricsRow?.paired_settlement_usd ?? 0),
+      pairedSettlementVolumeUsd: Number(metricsRow?.paired_settlement_usd ?? 0),
+      unmatchedTransferVolumeUsd: Number(metricsRow?.unmatched_transfer_usd ?? 0),
+      settlementCount: Number(metricsRow?.settlement_count ?? 0),
+      lastIndexedAt: metricsRow?.last_synced_at ? toIsoString(metricsRow.last_synced_at) : null,
+      latestIndexedBlock: metricsRow?.latest_indexed_block ?? null,
+      chainLag: null,
       totalUsd: Number(metricsRow?.total_usd ?? 0),
       inflowUsd: Number(metricsRow?.inflow_usd ?? 0),
       outflowUsd: Number(metricsRow?.outflow_usd ?? 0),

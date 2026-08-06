@@ -230,22 +230,27 @@ function findCounterparty(input: {
   return bestOwner ?? "Unknown";
 }
 
-function stateKeyForWallet(walletAddress: string, mintFilter?: string): string {
-  if (mintFilter) {
-    return [
-      "solana",
-      walletAddress,
-      mintFilter,
-      "newest-indexed-signature",
-    ].join(":");
-  }
-
+export function solanaStateKey(
+  walletAddress: string,
+  sourceAddress: string,
+  mintFilter?: string
+): string {
   return [
     "solana",
     walletAddress,
-    "all-supported-mints",
-    "newest-indexed-signature",
+    mintFilter ?? "all-supported-mints",
+    sourceAddress,
+    "newest-processed-signature",
   ].join(":");
+}
+
+export function deterministicSolanaTransferId(input: {
+  signature: string;
+  mint: string;
+  walletAddress: string;
+  direction: Direction;
+}): string {
+  return ["SOLANA", input.signature, input.mint, input.walletAddress, input.direction].join(":");
 }
 
 async function getStoredSignature(
@@ -390,14 +395,7 @@ async function storeTransfer(input: {
 }): Promise<void> {
   const explorerUrl = `https://solscan.io/tx/` + input.signature;
 
-  const transferId = [
-    "SOLANA",
-    input.signature,
-    String(input.transferIndex),
-    input.walletAddress,
-    input.direction,
-    input.mint,
-  ].join(":");
+  const transferId = deterministicSolanaTransferId(input);
 
   await pool.query(
     `
@@ -501,7 +499,7 @@ export async function syncSolanaWallet(
     throw new Error(`Unsupported Solana mint: ${mintFilter}`);
   }
 
-  const stateKey = stateKeyForWallet(walletAddress, mintFilter);
+  const stateKey = solanaStateKey(walletAddress, walletAddress, mintFilter);
 
   const newestStoredSignature = await getStoredSignature(stateKey);
 
@@ -546,9 +544,15 @@ export async function syncSolanaWallet(
     );
 
     if (!transaction) {
-      throw new Error(
-        `Solana transaction unavailable: ` + signatureInfo.signature
+      await pool.query(
+        `INSERT INTO indexer_failures(chain, source, transaction_id, error, next_retry_at)
+         VALUES ('SOLANA', $1, $2, $3, NOW() + INTERVAL '5 minutes')
+         ON CONFLICT(chain, source, transaction_id) DO UPDATE SET
+           error = EXCLUDED.error, attempts = indexer_failures.attempts + 1,
+           last_failed_at = NOW(), next_retry_at = NOW() + INTERVAL '5 minutes', resolved_at = NULL`,
+        [walletAddress, signatureInfo.signature, "Transaction temporarily unavailable"]
       );
+      continue;
     }
 
     if (transaction.blockTime === null || transaction.blockTime === undefined) {
@@ -567,11 +571,9 @@ export async function syncSolanaWallet(
 
     const postBalances = aggregateBalances(transaction.meta.postTokenBalances);
 
-    const mints = new Set([...preBalances.keys(), ...postBalances.keys()]);
+    const mints = [...new Set([...preBalances.keys(), ...postBalances.keys()])].sort();
 
-    let transferIndex = 0;
-
-    for (const mint of mints) {
+    for (const [transferIndex, mint] of mints.entries()) {
       if (mintFilter && mint !== mintFilter) {
         continue;
       }
@@ -636,10 +638,13 @@ export async function syncSolanaWallet(
         counterparty,
         status,
       });
+      await pool.query(
+        `UPDATE indexer_failures SET resolved_at = NOW()
+         WHERE chain = 'SOLANA' AND source = $1 AND transaction_id = $2`,
+        [walletAddress, signatureInfo.signature]
+      );
 
       storedTransfers += 1;
-      transferIndex += 1;
-
       console.info(
         `[solana] Stored ${direction} ` +
           `${amount} ${token.symbol} ` +

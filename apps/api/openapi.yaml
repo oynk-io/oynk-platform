@@ -1,0 +1,122 @@
+openapi: 3.1.0
+info:
+  title: Oynk Activity API
+  version: 1.1.0
+  description: Read-only indexed on-chain activity and restricted synchronization operations.
+servers:
+  - url: /api
+paths:
+  /dashboard:
+    get:
+      summary: Get dashboard metrics, timeline, and recent transfers
+      parameters:
+        - in: query
+          name: chain
+          schema: { type: string, enum: [ALL, BSC, SOLANA], default: ALL }
+      responses:
+        "200":
+          description: Dashboard data
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DashboardResponse" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "500": { $ref: "#/components/responses/ServerError" }
+  /dashboard/sync:
+    get:
+      summary: Get in-process synchronization status
+      responses:
+        "200":
+          description: Synchronization status
+          content: { application/json: { schema: { $ref: "#/components/schemas/SyncStatus" } } }
+    post:
+      summary: Start manual synchronization
+      description: Administrator-only and rate limited. Work continues asynchronously.
+      security: [{ AdminApiKey: [] }]
+      responses:
+        "202":
+          description: Synchronization accepted
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [accepted, runId, status]
+                properties:
+                  accepted: { type: boolean, const: true }
+                  runId: { type: string, format: uuid }
+                  status: { $ref: "#/components/schemas/SyncStatus" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "409": { description: Synchronization already running }
+        "429": { description: Rate limit exceeded }
+  /sync/status:
+    get:
+      summary: Get current synchronization status
+      responses:
+        "200": { description: Current status, content: { application/json: { schema: { $ref: "#/components/schemas/SyncStatus" } } } }
+  /sync/runs:
+    get:
+      summary: List recent synchronization runs
+      description: Operational endpoint; restrict at the deployment boundary.
+      responses:
+        "200": { description: Up to 100 recent runs }
+  /sync/runs/{id}:
+    get:
+      summary: Get synchronization run
+      description: Operational endpoint; restrict at the deployment boundary.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200": { description: Synchronization run }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "404": { description: Run not found }
+  /sync/failures:
+    get:
+      summary: List unresolved indexing failures
+      description: Operational endpoint; restrict at the deployment boundary.
+      responses:
+        "200": { description: Up to 200 unresolved failures }
+  /health/live:
+    get:
+      servers: [{ url: / }]
+      summary: Process liveness
+      responses:
+        "200": { description: Process is accepting HTTP work }
+  /health/ready:
+    get:
+      servers: [{ url: / }]
+      summary: Configuration and database readiness
+      responses:
+        "200": { description: Ready }
+        "503": { description: Not ready }
+components:
+  securitySchemes:
+    AdminApiKey:
+      type: apiKey
+      in: header
+      name: x-admin-api-key
+  responses:
+    BadRequest: { description: Invalid request }
+    Unauthorized: { description: Missing or invalid administrator credential }
+    ServerError: { description: Internal server error }
+  schemas:
+    SyncStatus:
+      type: object
+      required: [state, startedAt, completedAt, successfulChains, failedChains]
+      properties:
+        state: { type: string, enum: [IDLE, RUNNING, COMPLETED, PARTIAL, FAILED] }
+        startedAt: { type: [string, "null"], format: date-time }
+        completedAt: { type: [string, "null"], format: date-time }
+        successfulChains: { type: array, items: { type: string, enum: [BSC, SOLANA] } }
+        failedChains: { type: array, items: { type: string, enum: [BSC, SOLANA] } }
+    DashboardResponse:
+      type: object
+      required: [metrics, timeline, transfers]
+      properties:
+        metrics:
+          type: object
+          description: Gross movement and reference-paired settlement metrics. Legacy fields remain for compatibility.
+          additionalProperties: true
+        timeline: { type: array, items: { type: object, additionalProperties: true } }
+        transfers: { type: array, items: { type: object, additionalProperties: true } }

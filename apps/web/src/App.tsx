@@ -5,11 +5,10 @@ import {
   ArrowDownToLine,
   ArrowUpFromLine,
   Database,
-  RefreshCw,
   RotateCcw,
   WalletCards,
 } from "lucide-react";
-import { getDashboard, getSyncStatus, requestSync } from "./lib/api";
+import { getDashboard, getSyncStatus } from "./lib/api";
 import { CHAIN_METADATA } from "./lib/chains";
 import { formatRelativeTime, formatUsd } from "./lib/format";
 import { MetricCard } from "./components/MetricCard";
@@ -72,16 +71,6 @@ export function DashboardPage() {
     return () => window.clearInterval(timer);
   }, [load, syncStatus?.state]);
 
-  async function synchronize() {
-    setSyncError("");
-    try {
-      const result = await requestSync();
-      setSyncStatus(result.status);
-    } catch (requestError) {
-      setSyncError(requestError instanceof Error ? requestError.message : "Unable to start synchronization");
-    }
-  }
-
   const syncing = syncStatus?.state === "RUNNING";
   const syncMessage = syncError
     ? syncError
@@ -107,9 +96,6 @@ export function DashboardPage() {
               {syncing ? "Indexing in progress" : data?.metrics.lastSyncedAt ? `Indexed ${formatRelativeTime(data.metrics.lastSyncedAt)}` : "Awaiting first index"}
             </div>
             <label><span className="sr-only">Filter dashboard by blockchain</span><select value={chain} onChange={(event) => setChain(event.target.value as ChainFilter)} className="control max-w-[145px] sm:max-w-none"><option value="ALL">All chains</option><option value="BSC">{CHAIN_METADATA.BSC.label}</option><option value="SOLANA">{CHAIN_METADATA.SOLANA.label}</option></select></label>
-            <button type="button" onClick={() => void synchronize()} disabled={syncing} className="primary-button inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60 sm:px-4">
-              <RefreshCw size={15} className={syncing ? "animate-spin" : ""} aria-hidden="true" /><span className="hidden sm:inline">{syncing ? "Indexing…" : "Sync now"}</span><span className="sm:hidden">Sync</span>
-            </button>
           </div>
         </div>
       </header>
@@ -126,15 +112,17 @@ export function DashboardPage() {
         {loading && !data ? <DashboardSkeleton /> : data && (
           <>
             <section aria-labelledby="metrics-heading"><h2 id="metrics-heading" className="sr-only">Indexed activity metrics</h2><div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-              <MetricCard label="Total indexed volume" value={formatUsd(data.metrics.totalUsd)} sub="Combined inflow and outflow value" icon={Activity} />
+              <MetricCard label="Gross transfer volume" value={formatUsd(data.metrics.grossTransferVolumeUsd)} sub="All indexed blockchain movement; may include both settlement legs" icon={Activity} />
               <MetricCard label="Inflow volume" value={formatUsd(data.metrics.inflowUsd)} sub="Value received by tracked wallets" icon={ArrowDownToLine} />
               <MetricCard label="Outflow volume" value={formatUsd(data.metrics.outflowUsd)} sub="Value sent from tracked wallets" icon={ArrowUpFromLine} />
               <MetricCard label="Indexed transactions" value={data.metrics.transferCount.toLocaleString()} sub="On-chain token movements stored" icon={Database} />
               <MetricCard label="Tracked wallets" value={data.metrics.activeWallets.toLocaleString()} sub={chain === "ALL" ? "Enabled across both chains" : `Enabled on ${CHAIN_METADATA[chain].label}`} icon={WalletCards} />
               <MetricCard label="BSC volume" value={formatUsd(data.metrics.bscUsd)} sub="Indexed BNB Smart Chain activity" icon={Database} />
               <MetricCard label="Solana volume" value={formatUsd(data.metrics.solanaUsd)} sub="Indexed Solana activity" icon={Database} />
-              <MetricCard label="Paired transactions" value={data.metrics.pairedTransferCount.toLocaleString()} sub="Transfers with an indexed paired reference" icon={Activity} />
+              <MetricCard label="Estimated settled volume" value={formatUsd(data.metrics.estimatedSettledVolumeUsd)} sub="Reference-paired settlements using the conservative smaller leg" icon={Activity} />
             </div></section>
+
+            {chain !== "SOLANA" && <div className="mt-4 rounded-xl border border-amber-300/20 bg-amber-300/8 p-4 text-sm text-amber-100">BTCB values use a fixed operational estimate of $25,000 per BTCB. They are not historical market prices.</div>}
 
             <section className="mt-6 rounded-2xl border border-white/8 bg-white/[.035] p-4 sm:p-6" aria-labelledby="activity-heading"><div className="mb-3"><div className="flex flex-wrap items-center justify-between gap-3"><h2 id="activity-heading" className="font-semibold text-white">Transaction activity over time</h2><span className="rounded-full border border-white/8 bg-black/10 px-2.5 py-1 text-xs text-slate-400">Last 365 days</span></div><p className="mt-1 text-sm text-slate-500">Daily indexed inflow and outflow volume in USD</p></div><VolumeChart data={data.timeline} /></section>
 

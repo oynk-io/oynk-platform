@@ -7,6 +7,8 @@ import helmet from "helmet";
 import { allowedOrigins, config } from "./config.js";
 import { syncAll } from "./services/syncService.js";
 import { dashboardRouter } from "./routes/dashboardRoutes.js";
+import { syncRouter } from "./routes/syncRoutes.js";
+import { pool } from "./db/pool.js";
 
 const app = express();
 const server = http.createServer(app);
@@ -32,8 +34,18 @@ app.get("/api/health", (_request, response) => {
 		service: "oynk-crossborder-dashboard-api",
 	});
 });
+app.get("/health/live", (_request, response) => response.json({ ok: true }));
+app.get("/health/ready", async (_request, response) => {
+	try {
+		await pool.query("SELECT 1");
+		response.json({ ok: true, database: "available", configuration: "valid" });
+	} catch {
+		response.status(503).json({ ok: false, database: "unavailable" });
+	}
+});
 
 app.use("/api/dashboard", dashboardRouter);
+app.use("/api/sync", syncRouter);
 
 server.listen(config.API_PORT, "0.0.0.0", () => {
 	console.info(
@@ -48,9 +60,20 @@ server.listen(config.API_PORT, "0.0.0.0", () => {
 
 	const intervalMilliseconds = config.SYNC_INTERVAL_MINUTES * 60 * 1_000;
 
-	setInterval(() => {
+	const syncInterval = setInterval(() => {
 		void syncAll().catch((error) => {
 			console.error("[sync] Scheduled synchronization failed", error);
 		});
 	}, intervalMilliseconds);
+
+	async function shutdown(signal: string): Promise<void> {
+		console.info(`[shutdown] ${signal} received`);
+		clearInterval(syncInterval);
+		server.close(async () => {
+			await pool.end();
+			process.exit(0);
+		});
+	}
+	process.once("SIGINT", () => void shutdown("SIGINT"));
+	process.once("SIGTERM", () => void shutdown("SIGTERM"));
 });

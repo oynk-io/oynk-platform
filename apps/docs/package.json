@@ -1,0 +1,11 @@
+{
+  "name": "@oynk/docs",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node scripts/serve.mjs",
+    "build": "node scripts/build.mjs",
+    "typecheck": "node --check scripts/build.mjs && node --check scripts/serve.mjs && node --check src/pages.mjs"
+  }
+}

@@ -1,4 +1,7 @@
 import { pool } from "./pool.js";
+import { readFile } from "node:fs/promises";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 const sql = `
 CREATE TABLE IF NOT EXISTS tracked_wallets (
  id TEXT PRIMARY KEY, chain TEXT NOT NULL CHECK(chain IN ('BSC','SOLANA')), address TEXT NOT NULL,
@@ -26,5 +29,37 @@ INSERT INTO tracked_wallets(id,chain,address,label) VALUES
  ('sol-2','SOLANA','D338mf3WW935Ef3z3CceoQYzmJu2YYPft1HaedDk5MsD','Solana Settlement 2')
 ON CONFLICT DO NOTHING;`;
 await pool.query(sql);
+await pool.query(`
+  CREATE TABLE IF NOT EXISTS schema_migrations (
+    name TEXT PRIMARY KEY,
+    applied_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  )
+`);
+
+const migrationsDirectory = path.join(
+  path.dirname(fileURLToPath(import.meta.url)),
+  "migrations"
+);
+const migrationName = "001_reliability.sql";
+const applied = await pool.query<{ name: string }>(
+  "SELECT name FROM schema_migrations WHERE name = $1",
+  [migrationName]
+);
+
+if (applied.rowCount === 0) {
+  const migration = await readFile(path.join(migrationsDirectory, migrationName), "utf8");
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    await client.query(migration);
+    await client.query("INSERT INTO schema_migrations(name) VALUES ($1)", [migrationName]);
+    await client.query("COMMIT");
+  } catch (error) {
+    await client.query("ROLLBACK");
+    throw error;
+  } finally {
+    client.release();
+  }
+}
 console.log("Database migrated and wallets seeded.");
 await pool.end();

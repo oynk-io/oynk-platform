@@ -3,6 +3,7 @@ import { syncSolanaWallet } from "../indexers/solanaIndexer.js";
 import { pool } from "../db/pool.js";
 import type { Chain, SynchronizationStatus } from "@oynk/shared";
 import { pairComplementaryTransferLegs } from "./pairingService.js";
+import { randomUUID } from "node:crypto";
 
 type SolanaWalletRow = {
   address: string;
@@ -31,31 +32,47 @@ async function getSolanaWallets(): Promise<string[]> {
   return result.rows.map((row) => row.address);
 }
 
-export async function syncAll(): Promise<void> {
+export async function syncAll(mode = "FULL", requestedRunId?: string): Promise<{ runId: string; status: SynchronizationStatus }> {
+  const runId = requestedRunId ?? randomUUID();
   if (synchronizationRunning) {
     console.info("[sync] Synchronization already running; skipping");
 
-    return;
+    return { runId, status: getSyncStatus() };
   }
 
-  synchronizationRunning = true;
+  const lockClient = await pool.connect();
+  const lock = await lockClient.query<{ acquired: boolean }>(
+    "SELECT pg_try_advisory_lock(764239105) AS acquired"
+  );
+  if (!lock.rows[0]?.acquired) {
+    lockClient.release();
+    throw new Error("Synchronization is already running in another process");
+  }
+
   const startedAt = new Date().toISOString();
   const successfulChains: Chain[] = [];
   const failedChains: Chain[] = [];
-  synchronizationStatus = {
-    state: "RUNNING",
-    startedAt,
-    completedAt: null,
-    successfulChains,
-    failedChains,
-  };
+  let transfersInserted = 0;
 
   try {
+    await pool.query(
+      "INSERT INTO sync_runs(id, chain, mode, status, started_at) VALUES ($1, 'ALL', $2, 'RUNNING', $3)",
+      [runId, mode, startedAt]
+    );
+    synchronizationRunning = true;
+    synchronizationStatus = {
+      state: "RUNNING",
+      startedAt,
+      completedAt: null,
+      successfulChains,
+      failedChains,
+    };
     console.info("[sync] Starting BSC synchronization");
 
     try {
-      await syncBsc();
-      successfulChains.push("BSC");
+      const result = await syncBsc();
+      transfersInserted += result.transfersStored;
+      (result.pairsFailed > 0 ? failedChains : successfulChains).push("BSC");
 
       console.info("[sync] BSC synchronization completed");
     } catch (error) {
@@ -122,7 +139,20 @@ export async function syncAll(): Promise<void> {
       successfulChains: [...successfulChains],
       failedChains: [...failedChains],
     };
+    try {
+      await pool.query(
+        `UPDATE sync_runs SET status = $2, completed_at = $3,
+         transfers_inserted = $4, error_count = $5,
+         metadata = $6::JSONB WHERE id = $1`,
+        [runId, state, synchronizationStatus.completedAt, transfersInserted, failedChains.length, JSON.stringify({ successfulChains, failedChains })]
+      );
+    } finally {
+      await lockClient.query("SELECT pg_advisory_unlock(764239105)");
+      lockClient.release();
+    }
   }
+
+  return { runId, status: getSyncStatus() };
 }
 
 export function isSyncRunning(): boolean {

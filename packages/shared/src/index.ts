@@ -5,6 +5,16 @@ export type TransferDirection = "INFLOW" | "OUTFLOW";
 export type TransferStatus = "CONFIRMED" | "FAILED" | "PENDING";
 
 export type DashboardMetrics = {
+  grossTransferVolumeUsd: number;
+  inflowVolumeUsd: number;
+  outflowVolumeUsd: number;
+  estimatedSettledVolumeUsd: number;
+  pairedSettlementVolumeUsd: number;
+  unmatchedTransferVolumeUsd: number;
+  settlementCount: number;
+  lastIndexedAt: string | null;
+  latestIndexedBlock: string | null;
+  chainLag: number | null;
   totalUsd: number;
   inflowUsd: number;
   outflowUsd: number;
@@ -86,5 +96,6 @@ export type SynchronizationStatus = {
 
 export type SynchronizationAcceptedResponse = {
   accepted: true;
+  runId: string;
   status: SynchronizationStatus;
 };

@@ -1,0 +1,6 @@
+{
+  "buildCommand": "pnpm --filter @oynk/docs build",
+  "outputDirectory": "dist",
+  "cleanUrls": true,
+  "trailingSlash": false
+}

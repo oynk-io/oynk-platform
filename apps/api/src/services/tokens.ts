@@ -11,6 +11,7 @@ export type BscToken = {
    * This is not a live market price.
    */
   fixedUsdPrice: string;
+  startBlock?: number;
 };
 
 export type SolanaTokenSymbol = "USDT" | "USDC";

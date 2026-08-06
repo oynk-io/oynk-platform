@@ -5,9 +5,14 @@
   "packageManager": "pnpm@10.34.5",
   "scripts": {
     "dev": "pnpm --parallel --filter @oynk/shared --filter @oynk/api --filter @oynk/web dev",
-    "build": "pnpm --filter @oynk/shared build && pnpm --filter @oynk/api build && pnpm --filter @oynk/web build",
-    "typecheck": "pnpm --filter @oynk/shared typecheck && pnpm --filter @oynk/api typecheck && pnpm --filter @oynk/web typecheck",
+    "docs:dev": "pnpm --filter @oynk/docs dev",
+    "build": "pnpm --filter @oynk/shared build && pnpm --filter @oynk/api build && pnpm --filter @oynk/web build && pnpm --filter @oynk/docs build",
+    "typecheck": "pnpm --filter @oynk/shared typecheck && pnpm --filter @oynk/api typecheck && pnpm --filter @oynk/web typecheck && pnpm --filter @oynk/docs typecheck",
+    "test": "pnpm --filter @oynk/api test",
     "db:migrate": "pnpm --filter @oynk/api db:migrate",
-    "sync": "pnpm --filter @oynk/api sync"
+    "sync": "pnpm --filter @oynk/api sync",
+    "sync:contract": "pnpm --filter @oynk/api sync:contract",
+    "audit:bsc": "pnpm --filter @oynk/api audit:bsc",
+    "audit:solana": "pnpm --filter @oynk/api audit:solana"
   }
 }

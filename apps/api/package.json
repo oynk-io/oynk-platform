@@ -5,10 +5,14 @@
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
     "start": "node dist/index.js",
     "db:migrate": "tsx src/db/migrate.ts",
     "sync": "tsx src/scripts/sync.ts",
-    "sync:contract": "tsx src/scripts/syncContract.ts"
+    "sync:contract": "tsx src/scripts/syncContract.ts",
+    "audit:bsc": "tsx src/scripts/auditBsc.ts",
+    "audit:solana": "tsx src/scripts/auditSolana.ts",
+    "test": "ADMIN_API_KEY=01234567890123456789012345678901 DATABASE_URL=postgresql://test:test@localhost:5432/test BSC_RPC_URL=https://example.invalid SOLANA_RPC_URL=https://example.invalid tsx --test src/**/*.test.ts"
   },
   "dependencies": {
     "@oynk/shared": "workspace:*",

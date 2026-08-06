@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { randomUUID, timingSafeEqual } from "node:crypto";
 
 import { getDashboardData } from "../services/dashboardService.js";
 import {
@@ -6,6 +7,7 @@ import {
   isSyncRunning,
   syncAll,
 } from "../services/syncService.js";
+import { config } from "../config.js";
 
 export const dashboardRouter = Router();
 
@@ -36,7 +38,31 @@ dashboardRouter.get("/", async (request, response) => {
   }
 });
 
-dashboardRouter.post("/sync", async (_request, response) => {
+const syncRequests = new Map<string, number[]>();
+
+function authorized(value: string | undefined): boolean {
+  if (!value) return false;
+  const provided = Buffer.from(value);
+  const expected = Buffer.from(config.ADMIN_API_KEY);
+  return provided.length === expected.length && timingSafeEqual(provided, expected);
+}
+
+dashboardRouter.post("/sync", async (request, response) => {
+  if (!authorized(request.header("x-admin-api-key"))) {
+    response.status(401).json({ error: "Unauthorized" });
+    return;
+  }
+
+  const source = request.ip ?? "unknown";
+  const now = Date.now();
+  const recent = (syncRequests.get(source) ?? []).filter((time) => now - time < 60_000);
+  if (recent.length >= 3) {
+    response.status(429).json({ error: "Too many synchronization requests" });
+    return;
+  }
+  recent.push(now);
+  syncRequests.set(source, recent);
+
   if (isSyncRunning()) {
     response.status(409).json({
       error: "Synchronization is already running",
@@ -46,12 +72,14 @@ dashboardRouter.post("/sync", async (_request, response) => {
     return;
   }
 
-  void syncAll().catch((error) => {
+  const runId = randomUUID();
+  void syncAll("MANUAL", runId).catch((error) => {
     console.error("[dashboard] Manual sync failed", error);
   });
 
   response.status(202).json({
     accepted: true,
+    runId,
     status: getSyncStatus(),
   });
 });

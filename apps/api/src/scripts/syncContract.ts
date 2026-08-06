@@ -72,17 +72,22 @@ function findBscToken(
     ? normalizeEvmAddress(contractAddress)
     : undefined;
 
-  const token = BSC_TOKENS.find(
-    (candidate) =>
-      (tokenSymbol && candidate.symbol === tokenSymbol) ||
-      (normalizedContract &&
-        normalizeEvmAddress(candidate.address) === normalizedContract)
-  );
+  const token = normalizedContract
+    ? BSC_TOKENS.find(
+        (candidate) => normalizeEvmAddress(candidate.address) === normalizedContract
+      )
+    : BSC_TOKENS.find((candidate) => tokenSymbol && candidate.symbol === tokenSymbol);
 
   if (!token) {
     throw new Error(
       `Unknown BSC token. Supported values: ` +
         BSC_TOKENS.map((item) => `${item.symbol}=${item.address}`).join(", ")
+    );
+  }
+
+  if (tokenSymbol && token.symbol !== tokenSymbol) {
+    throw new Error(
+      `Token symbol ${tokenSymbol} does not match configured contract ${normalizedContract}`
     );
   }
 

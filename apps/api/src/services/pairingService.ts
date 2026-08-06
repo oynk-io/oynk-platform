@@ -67,7 +67,10 @@ export async function pairComplementaryTransferLegs(): Promise<void> {
           SET pair_id = CASE
             WHEN id = $1 THEN $2
             WHEN id = $2 THEN $1
-          END
+          END,
+          pairing_method = 'HEURISTIC',
+          pairing_confidence = 0.5000,
+          paired_at = NOW()
           WHERE id IN ($1, $2)
             AND pair_id IS NULL
         `,

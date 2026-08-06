@@ -43,6 +43,8 @@ const schema = z.object({
 
 	BSC_RPC_URL: z.string().url(),
 	SOLANA_RPC_URL: z.string().url(),
+	ADMIN_API_KEY: z.string().min(32),
+	SOLANA_ADDITIONAL_SOURCE_ACCOUNTS: z.string().default(""),
 
 	/**
 	 * Conservative historical start.
@@ -69,6 +71,11 @@ const schema = z.object({
 	 * Smallest allowed range before a provider error is surfaced.
 	 */
 	BSC_MIN_CHUNK_SIZE: z.coerce.number().int().min(10).default(500),
+	BSC_CONFIRMATION_DEPTH: z.coerce.number().int().nonnegative().default(20),
+	BSC_REORG_REWIND_BLOCKS: z.coerce.number().int().nonnegative().default(30),
+	BSC_CHUNK_GROWTH_SUCCESS_RANGES: z.coerce.number().int().positive().default(5),
+	BSC_CHUNK_GROWTH_STEP: z.coerce.number().int().positive().default(250),
+	BSC_CHUNK_JITTER_MS: z.coerce.number().int().nonnegative().default(100),
 
 	/**
 	 * Pause after each successfully indexed range.
@@ -114,11 +121,20 @@ function maskDatabaseUrl(value: string): string {
 	return value.replace(/:[^:@/]+@/, ":***@");
 }
 
+function redactUrl(value: string): string {
+	try {
+		const url = new URL(value);
+		return `${url.protocol}//${url.host}/…`;
+	} catch {
+		return "[redacted]";
+	}
+}
+
 console.info("[config]", {
 	database: maskDatabaseUrl(config.DATABASE_URL),
 	allowedOrigins,
-	bscRpc: config.BSC_RPC_URL,
-	solanaRpc: config.SOLANA_RPC_URL,
+	bscRpc: redactUrl(config.BSC_RPC_URL),
+	solanaRpc: redactUrl(config.SOLANA_RPC_URL),
 	bscStartBlock: config.BSC_START_BLOCK,
 	bscInitialChunkSize: config.BSC_INITIAL_CHUNK_SIZE,
 	bscMaximumChunkSize: config.BSC_MAX_CHUNK_SIZE,
