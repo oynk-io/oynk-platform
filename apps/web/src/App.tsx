@@ -31,21 +31,7 @@ function DashboardSkeleton() {
   );
 }
 
-function NotFound() {
-  return (
-    <main className="grid min-h-screen place-items-center px-6 text-center">
-      <div>
-        <div className="mx-auto grid h-12 w-12 place-items-center rounded-xl bg-emerald-300 font-black text-[#07110e]">O</div>
-        <p className="mt-8 text-sm font-medium text-emerald-300">404</p>
-        <h1 className="mt-2 text-3xl font-semibold text-white">Page not found</h1>
-        <p className="mt-3 text-slate-400">This dashboard only includes indexed on-chain activity.</p>
-        <a href="/" className="primary-button mt-6 inline-flex rounded-xl px-4 py-2.5 text-sm font-semibold">Return to dashboard</a>
-      </div>
-    </main>
-  );
-}
-
-export default function App() {
+export function DashboardPage() {
   const [data, setData] = useState<DashboardResponse | null>(null);
   const [chain, setChain] = useState<ChainFilter>("ALL");
   const [loading, setLoading] = useState(true);
@@ -96,8 +82,6 @@ export default function App() {
     }
   }
 
-  if (window.location.pathname !== "/") return <NotFound />;
-
   const syncing = syncStatus?.state === "RUNNING";
   const syncMessage = syncError
     ? syncError
@@ -110,10 +94,10 @@ export default function App() {
           : "";
 
   return (
-    <main className="min-h-screen">
+    <main className="dashboard-page min-h-screen">
       <header className="sticky top-0 z-20 border-b border-white/8 bg-[#07110e]/90 backdrop-blur-xl">
         <div className="mx-auto flex max-w-[1480px] items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:px-8">
-          <a href="/" className="flex min-w-0 items-center gap-3 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300">
+          <a href="/" className="flex min-w-0 items-center gap-3 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300" aria-label="Return to Oynk home">
             <div className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-emerald-300 font-black text-[#07110e]">O</div>
             <div className="min-w-0"><div className="truncate font-semibold text-white">Oynk</div><div className="hidden text-xs text-slate-500 sm:block">On-chain activity index</div></div>
           </a>
