@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   ArrowRight,
   Banknote,
@@ -10,9 +10,12 @@ import {
   Handshake,
   Landmark,
   Layers3,
+  KeyRound,
   Menu,
   Network,
+  RadioTower,
   Route,
+  ShieldCheck,
   Smartphone,
   Store,
   Workflow,
@@ -21,11 +24,14 @@ import {
 
 const navigation = [
   { label: "How it works", href: "#how-it-works" },
+  { label: "Architecture", href: "#architecture" },
   { label: "Network", href: "#network" },
   { label: "Solutions", href: "#solutions" },
   { label: "Experience", href: "#experience" },
   { label: "Activity", href: "/dashboard" },
 ] as const;
+
+const consoleUrl = import.meta.env.VITE_CONSOLE_SITE_URL ?? "https://console.oynk.io";
 
 function Wordmark() {
   return (
@@ -38,17 +44,30 @@ function Wordmark() {
 
 function LandingHeader() {
   const [open, setOpen] = useState(false);
+  const menuButtonRef = useRef<HTMLButtonElement>(null);
+  const firstMobileLinkRef = useRef<HTMLAnchorElement>(null);
 
   useEffect(() => {
     if (!open) return;
 
     function closeOnEscape(event: KeyboardEvent) {
-      if (event.key === "Escape") setOpen(false);
+      if (event.key === "Escape") closeNavigation({ restoreFocus: true });
     }
 
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    firstMobileLinkRef.current?.focus();
     window.addEventListener("keydown", closeOnEscape);
-    return () => window.removeEventListener("keydown", closeOnEscape);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", closeOnEscape);
+    };
   }, [open]);
+
+  function closeNavigation({ restoreFocus = false } = {}) {
+    setOpen(false);
+    if (restoreFocus) window.requestAnimationFrame(() => menuButtonRef.current?.focus());
+  }
 
   return (
     <header className="landing-header">
@@ -57,18 +76,20 @@ function LandingHeader() {
         <nav className="hidden items-center gap-7 lg:flex" aria-label="Primary navigation">
           {navigation.map((item) => <a key={item.label} href={item.href} className="landing-nav-link">{item.label}</a>)}
         </nav>
-        <div className="hidden lg:block">
-          <a href="#network" className="landing-button landing-button-primary">Explore the network <ArrowRight size={16} aria-hidden="true" /></a>
+        <div className="hidden items-center gap-3 lg:flex">
+          <a href={`${consoleUrl}/login`} className="landing-nav-link">Sign in</a>
+          <a href={`${consoleUrl}/signup`} className="landing-button landing-button-primary">Get started <ArrowRight size={16} aria-hidden="true" /></a>
         </div>
-        <button type="button" className="landing-icon-button lg:hidden" onClick={() => setOpen((current) => !current)} aria-expanded={open} aria-controls="mobile-navigation" aria-label={open ? "Close navigation" : "Open navigation"}>
+        <button ref={menuButtonRef} type="button" className="landing-icon-button lg:hidden" onClick={() => open ? closeNavigation({ restoreFocus: true }) : setOpen(true)} aria-expanded={open} aria-controls="mobile-navigation" aria-label={open ? "Close navigation" : "Open navigation"}>
           {open ? <X size={22} /> : <Menu size={22} />}
         </button>
       </div>
       {open && (
         <nav id="mobile-navigation" className="landing-mobile-nav lg:hidden" aria-label="Mobile navigation">
           <div className="landing-container flex flex-col py-3">
-            {navigation.map((item) => <a key={item.label} href={item.href} className="landing-mobile-link" onClick={() => setOpen(false)}>{item.label}<ChevronRight size={17} aria-hidden="true" /></a>)}
-            <a href="#network" className="landing-button landing-button-primary mt-3 justify-center" onClick={() => setOpen(false)}>Explore the network <ArrowRight size={16} aria-hidden="true" /></a>
+            {navigation.map((item, index) => <a ref={index === 0 ? firstMobileLinkRef : undefined} key={item.label} href={item.href} className="landing-mobile-link" onClick={() => closeNavigation()}>{item.label}<ChevronRight size={17} aria-hidden="true" /></a>)}
+            <a href={`${consoleUrl}/login`} className="landing-mobile-link" onClick={() => closeNavigation()}>Sign in<ChevronRight size={17} /></a>
+            <a href={`${consoleUrl}/signup`} className="landing-button landing-button-primary mt-3 justify-center" onClick={() => closeNavigation()}>Get started <ArrowRight size={16} aria-hidden="true" /></a>
           </div>
         </nav>
       )}
@@ -139,6 +160,27 @@ const benefits = [
   { title: "Transaction visibility", copy: "Platforms can maintain a clearer view of value movement across participating payment paths." },
 ] as const;
 
+const architecturePrinciples = [
+  {
+    icon: KeyRound,
+    label: "Authorization",
+    title: "Bounded, user-controlled access",
+    copy: "Oynk is exploring smart-account authorization with passkeys and limited sessions that can restrict spend, permitted actions, duration, and delegate access.",
+  },
+  {
+    icon: ShieldCheck,
+    label: "Settlement controls",
+    title: "Explicit rules for value movement",
+    copy: "The proposed Stellar and Soroban settlement layer is intended to coordinate requests, provider commitments, deadlines, evidence, claims, refunds, and disputes.",
+  },
+  {
+    icon: RadioTower,
+    label: "Low-connectivity access",
+    title: "Designed for constrained environments",
+    copy: "A proposed one-sided offline model lets a user prepare a tightly limited authorization while an online merchant submits it for network verification.",
+  },
+] as const;
+
 export function LandingPage() {
   return (
     <div className="landing-page">
@@ -195,6 +237,22 @@ export function LandingPage() {
             <ol className="mt-14 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
               {steps.map((step) => <li key={step.number} className="step-card"><div className="flex items-center justify-between"><span className="step-icon"><step.icon size={21} aria-hidden="true" /></span><span className="step-number">{step.number}</span></div><h3>{step.title}</h3><p>{step.copy}</p></li>)}
             </ol>
+          </div>
+        </section>
+
+        <section id="architecture" className="landing-section architecture-section scroll-mt-20">
+          <div className="landing-container">
+            <div className="architecture-heading-grid">
+              <SectionHeading eyebrow="Architecture direction" title="Built for controlled settlement—not a closed payment silo." copy="Oynk’s product direction combines user authorization, programmable settlement controls, and qualified provider execution while keeping each responsibility distinct." />
+              <div className="architecture-status" role="note">
+                <span>Development status</span>
+                <p>Smart accounts, Soroban settlement controls, and low-connectivity authorization are proposed capabilities under active design. The public activity dashboard currently indexes supported BSC and Solana transactions.</p>
+              </div>
+            </div>
+            <div className="architecture-principles">
+              {architecturePrinciples.map((principle) => <article key={principle.title} className="architecture-card"><span className="architecture-card-icon"><principle.icon size={22} aria-hidden="true" /></span><p className="landing-eyebrow">{principle.label}</p><h3>{principle.title}</h3><p>{principle.copy}</p></article>)}
+            </div>
+            <p className="architecture-caveat">Phone numbers may support account discovery or recovery, but cryptographic keys—not phone-number possession—authorize payment actions. Low-connectivity operation still requires an online submitting participant and strict replay, expiry, and exposure controls.</p>
           </div>
         </section>
 
@@ -306,7 +364,7 @@ export function LandingPage() {
         <section className="px-4 py-20 sm:px-6 sm:py-28">
           <div className="final-cta">
             <div><p className="landing-eyebrow">Build the network</p><h2>Help shape the next generation of cross-border settlement.</h2><p>Oynk is designed for payment platforms, qualified liquidity providers, local settlement providers, and infrastructure partners.</p></div>
-            <div className="flex shrink-0 flex-col gap-3 sm:flex-row"><a href="#network" className="landing-button landing-button-light">Explore the network <ArrowRight size={17} aria-hidden="true" /></a><a href="/dashboard" className="landing-button landing-button-ghost-light">View activity</a></div>
+            <div className="flex shrink-0 flex-col gap-3 sm:flex-row"><a href="https://docs.oynk.io/docs" className="landing-button landing-button-light">Review the architecture <ArrowRight size={17} aria-hidden="true" /></a><a href="/dashboard" className="landing-button landing-button-ghost-light">View activity</a></div>
           </div>
         </section>
       </main>
@@ -316,6 +374,7 @@ export function LandingPage() {
           <div><a href="/" aria-label="Oynk home"><Wordmark /></a><p className="mt-4 max-w-sm text-sm leading-6 text-[#66766f]">Programmable cross-border settlement infrastructure for payment platforms and qualified network participants.</p></div>
           <nav className="grid grid-cols-2 gap-x-10 gap-y-3 text-sm sm:grid-cols-3" aria-label="Footer navigation">
             {navigation.map((item) => <a key={item.label} href={item.href} className="footer-link">{item.label}</a>)}
+            <a href="https://docs.oynk.io/docs" className="footer-link">Documentation</a>
           </nav>
         </div>
         <div className="border-t border-[#dfe5e1]"><div className="landing-container flex flex-col gap-2 py-5 text-xs text-[#7a8883] sm:flex-row sm:items-center sm:justify-between"><span>© {new Date().getFullYear()} Oynk. All rights reserved.</span><span>Cross-border settlement, connected.</span></div></div>

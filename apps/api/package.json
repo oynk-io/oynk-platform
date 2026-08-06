@@ -12,6 +12,9 @@
     "sync:contract": "tsx src/scripts/syncContract.ts",
     "audit:bsc": "tsx src/scripts/auditBsc.ts",
     "audit:solana": "tsx src/scripts/auditSolana.ts",
+    "create:internal-owner": "tsx src/scripts/createInternalOwner.ts",
+    "email:test": "tsx src/scripts/emailTest.ts",
+    "auth:audit": "tsx src/scripts/authAudit.ts",
     "test": "ADMIN_API_KEY=01234567890123456789012345678901 DATABASE_URL=postgresql://test:test@localhost:5432/test BSC_RPC_URL=https://example.invalid SOLANA_RPC_URL=https://example.invalid tsx --test src/**/*.test.ts"
   },
   "dependencies": {

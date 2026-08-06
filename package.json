@@ -4,15 +4,19 @@
   "private": true,
   "packageManager": "pnpm@10.34.5",
   "scripts": {
-    "dev": "pnpm --parallel --filter @oynk/shared --filter @oynk/api --filter @oynk/web dev",
+    "dev": "pnpm --filter @oynk/shared build && pnpm --parallel --filter @oynk/api --filter @oynk/web --filter @oynk/console dev",
+    "dev:console": "pnpm --filter @oynk/console dev",
     "docs:dev": "pnpm --filter @oynk/docs dev",
-    "build": "pnpm --filter @oynk/shared build && pnpm --filter @oynk/api build && pnpm --filter @oynk/web build && pnpm --filter @oynk/docs build",
-    "typecheck": "pnpm --filter @oynk/shared typecheck && pnpm --filter @oynk/api typecheck && pnpm --filter @oynk/web typecheck && pnpm --filter @oynk/docs typecheck",
+    "build": "pnpm --filter @oynk/shared build && pnpm --filter @oynk/api build && pnpm --filter @oynk/web build && pnpm --filter @oynk/console build && pnpm --filter @oynk/docs build",
+    "typecheck": "pnpm --filter @oynk/shared build && pnpm --filter @oynk/api typecheck && pnpm --filter @oynk/web typecheck && pnpm --filter @oynk/console typecheck && pnpm --filter @oynk/docs typecheck",
     "test": "pnpm --filter @oynk/api test",
     "db:migrate": "pnpm --filter @oynk/api db:migrate",
     "sync": "pnpm --filter @oynk/api sync",
     "sync:contract": "pnpm --filter @oynk/api sync:contract",
     "audit:bsc": "pnpm --filter @oynk/api audit:bsc",
-    "audit:solana": "pnpm --filter @oynk/api audit:solana"
+    "audit:solana": "pnpm --filter @oynk/api audit:solana",
+    "auth:audit": "pnpm --filter @oynk/api auth:audit",
+    "create:internal-owner": "pnpm --filter @oynk/api create:internal-owner",
+    "email:test": "pnpm --filter @oynk/api email:test"
   }
 }

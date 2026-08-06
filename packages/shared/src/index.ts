@@ -99,3 +99,69 @@ export type SynchronizationAcceptedResponse = {
   runId: string;
   status: SynchronizationStatus;
 };
+
+export type UserStatus = "PENDING_VERIFICATION" | "ACTIVE" | "SUSPENDED" | "DISABLED";
+export type OrganizationType = "BUSINESS" | "SETTLEMENT_PARTNER" | "INTERNAL";
+export type OrganizationStatus =
+  | "DRAFT"
+  | "EMAIL_VERIFICATION_REQUIRED"
+  | "COMPLIANCE_INCOMPLETE"
+  | "COMPLIANCE_SUBMITTED"
+  | "UNDER_REVIEW"
+  | "ADDITIONAL_INFORMATION_REQUIRED"
+  | "APPROVED"
+  | "ACTIVE"
+  | "REJECTED"
+  | "SUSPENDED"
+  | "CLOSED";
+export type PlatformMode = "SANDBOX" | "TEST" | "LIVE";
+export type OtpPurpose =
+  | "SIGN_IN"
+  | "EMAIL_VERIFICATION"
+  | "PASSWORD_RESET"
+  | "SENSITIVE_ACTION"
+  | "PARTNER_ACTIVATION"
+  | "BUSINESS_ACTIVATION";
+
+export type AuthenticatedUser = {
+  id: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  status: UserStatus;
+};
+
+export type OrganizationSummary = {
+  id: string;
+  name: string;
+  type: OrganizationType;
+  status: OrganizationStatus;
+  platformMode: PlatformMode;
+  role: string;
+  permissions: string[];
+};
+
+export type SessionResponse = {
+  authenticated: true;
+  user: AuthenticatedUser;
+  organization: OrganizationSummary | null;
+  organizations: OrganizationSummary[];
+  expiresAt: string;
+  csrfToken: string;
+};
+
+export type OtpChallengeResponse = {
+  challengeId: string;
+  purpose: OtpPurpose;
+  expiresAt: string;
+  resendAvailableAt: string;
+  destinationHint: string;
+  developmentCode?: string;
+};
+
+export type AuthErrorResponse = {
+  error: string;
+  code: string;
+  requestId?: string;
+  fieldErrors?: Record<string, string>;
+};

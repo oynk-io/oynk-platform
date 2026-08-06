@@ -9,6 +9,7 @@ import { syncAll } from "./services/syncService.js";
 import { dashboardRouter } from "./routes/dashboardRoutes.js";
 import { syncRouter } from "./routes/syncRoutes.js";
 import { pool } from "./db/pool.js";
+import { authRouter } from "./routes/authRoutes.js";
 
 const app = express();
 const server = http.createServer(app);
@@ -46,6 +47,7 @@ app.get("/health/ready", async (_request, response) => {
 
 app.use("/api/dashboard", dashboardRouter);
 app.use("/api/sync", syncRouter);
+app.use("/api/auth", authRouter);
 
 server.listen(config.API_PORT, "0.0.0.0", () => {
 	console.info(

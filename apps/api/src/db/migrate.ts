@@ -1,5 +1,5 @@
 import { pool } from "./pool.js";
-import { readFile } from "node:fs/promises";
+import { readFile, readdir } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 const sql = `
@@ -40,13 +40,16 @@ const migrationsDirectory = path.join(
   path.dirname(fileURLToPath(import.meta.url)),
   "migrations"
 );
-const migrationName = "001_reliability.sql";
-const applied = await pool.query<{ name: string }>(
-  "SELECT name FROM schema_migrations WHERE name = $1",
-  [migrationName]
-);
+const migrationNames = (await readdir(migrationsDirectory))
+  .filter((name) => /^\d{3}_[a-z0-9_]+\.sql$/.test(name))
+  .sort();
 
-if (applied.rowCount === 0) {
+for (const migrationName of migrationNames) {
+  const applied = await pool.query<{ name: string }>(
+    "SELECT name FROM schema_migrations WHERE name = $1",
+    [migrationName]
+  );
+  if (applied.rowCount !== 0) continue;
   const migration = await readFile(path.join(migrationsDirectory, migrationName), "utf8");
   const client = await pool.connect();
   try {
@@ -61,5 +64,5 @@ if (applied.rowCount === 0) {
     client.release();
   }
 }
-console.log("Database migrated and wallets seeded.");
+console.log("Database migrations applied and configured wallets preserved.");
 await pool.end();

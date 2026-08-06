@@ -1,0 +1,5 @@
+import { config } from "../config.js";
+import { sendEmail, verifyEmailConnection } from "../email/emailService.js";
+function argument(name:string):string|undefined{const index=process.argv.indexOf(`--${name}`);return index>=0?process.argv[index+1]:undefined;}
+async function main():Promise<void>{const to=argument("to");if(!to||!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(to))throw new Error("Usage: pnpm email:test -- --to <verified-address>");await verifyEmailConnection();await sendEmail({to,subject:"Oynk email delivery test",text:"This harmless message confirms that Oynk email delivery is configured.",html:'<!doctype html><html lang="en"><body><h1>Oynk email delivery test</h1><p>This harmless message confirms that Oynk email delivery is configured.</p></body></html>'});console.info("Email test completed",{provider:config.EMAIL_PROVIDER,to:to.replace(/^(.{2}).*(@.*)$/, "$1…$2")});}
+void main().catch((error)=>{console.error("Email test failed",error instanceof Error?error.message:"Unknown error");process.exitCode=1;});
