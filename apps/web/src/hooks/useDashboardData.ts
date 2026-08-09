@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useState } from "react";
-import type { Chain, DashboardResponse, SynchronizationStatus } from "@oynk/shared";
+import type { DashboardFilter, DashboardResponse, SynchronizationStatus } from "@oynk/shared";
 
 import { getDashboard, getSyncStatus } from "../lib/api";
 
-export type ChainFilter = "ALL" | Chain;
+export type ChainFilter = DashboardFilter;
 
 export function useDashboardData(chain: ChainFilter) {
   const [data, setData] = useState<DashboardResponse | null>(null);

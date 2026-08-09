@@ -18,7 +18,7 @@ dashboardRouter.get("/", async (request, response) => {
         ? request.query.chain.toUpperCase()
         : "ALL";
 
-    if (!["ALL", "BSC", "SOLANA"].includes(chain)) {
+    if (!["ALL", "BSC", "SOLANA", "OFFCHAIN"].includes(chain)) {
       response.status(400).json({
         error: "Invalid chain filter",
       });
@@ -26,7 +26,7 @@ dashboardRouter.get("/", async (request, response) => {
       return;
     }
 
-    const dashboard = await getDashboardData(chain as "ALL" | "BSC" | "SOLANA");
+    const dashboard = await getDashboardData(chain as "ALL" | "BSC" | "SOLANA" | "OFFCHAIN");
 
     response.json(dashboard);
   } catch (error) {

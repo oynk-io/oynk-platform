@@ -13,10 +13,12 @@ RUN pnpm install --frozen-lockfile
 
 COPY packages/shared packages/shared
 COPY apps/api apps/api
+COPY updated-offchain-tx.csv ./
 
 RUN pnpm --filter @oynk/shared build
 RUN pnpm --filter @oynk/api build
 RUN pnpm --filter @oynk/api deploy --prod --legacy /out
+RUN mkdir -p /out/dist/db/migrations && cp apps/api/src/db/migrations/*.sql /out/dist/db/migrations/
 
 # ---- runtime stage ----
 FROM node:22-alpine
@@ -24,6 +26,7 @@ ENV NODE_ENV=production
 WORKDIR /app
 
 COPY --from=build /out ./
+COPY --from=build /app/updated-offchain-tx.csv ./
 
 EXPOSE 4020
 

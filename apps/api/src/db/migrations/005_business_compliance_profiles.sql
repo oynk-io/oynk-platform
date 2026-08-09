@@ -1,4 +1,4 @@
-+CREATE TABLE business_compliance_profiles (
+CREATE TABLE business_compliance_profiles (
   organization_id UUID PRIMARY KEY REFERENCES organizations(id) ON DELETE CASCADE,
   organization_type TEXT NOT NULL,
   registration_number TEXT NOT NULL DEFAULT '',

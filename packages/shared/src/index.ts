@@ -1,5 +1,8 @@
 export type Chain = "BSC" | "SOLANA";
 
+export type SettlementRoute = "ONCHAIN" | "OFFCHAIN";
+export type DashboardFilter = "ALL" | Chain | "OFFCHAIN";
+
 export type TransferDirection = "INFLOW" | "OUTFLOW";
 
 export type TransferStatus = "CONFIRMED" | "FAILED" | "PENDING";
@@ -20,6 +23,8 @@ export type DashboardMetrics = {
   outflowUsd: number;
   bscUsd: number;
   solanaUsd: number;
+  onchainVolumeUsd: number;
+  offchainVolumeUsd: number;
   transferCount: number;
   activeWallets: number;
   pairedTransferCount: number;
@@ -35,8 +40,9 @@ export type TimelinePoint = {
   transferCount: number;
 };
 
-export type TransferRow = {
+export type OnchainTransferRow = {
   id: string;
+  settlementRoute: "ONCHAIN";
   chain: Chain;
   walletAddress: string;
   txHash: string;
@@ -62,6 +68,26 @@ export type TransferRow = {
   pairExplorerUrl: string | null;
   pairedLeg: TransferLeg | null;
 };
+
+export type OffchainTransferRow = {
+  id: string;
+  settlementRoute: "OFFCHAIN";
+  timestamp: string;
+  direction: TransferDirection;
+  assetSymbol: "USD";
+  amount: string;
+  usdValue: string;
+  status: TransferStatus;
+  transactionId: string | null;
+  referenceId: string;
+  transactionType: string;
+  description: string;
+  sender: "••••••••";
+  recipient: "••••••••";
+  accountName: "••••••••";
+};
+
+export type TransferRow = OnchainTransferRow | OffchainTransferRow;
 
 export type TransferLeg = {
   id: string;

@@ -1,10 +1,11 @@
 import type {
   DashboardResponse,
+  OnchainTransferRow,
   SynchronizationStatus,
   TimelinePoint,
   TransferRow,
 } from "@oynk/shared";
-const API = (import.meta.env.VITE_API_URL ?? "https://api.oynk.io").replace(
+const API = (import.meta.env.VITE_API_URL ?? "http://localhost:4000").replace(
   /\/+$/,
   ""
 );
@@ -51,18 +52,36 @@ export async function getDashboard(chain = "ALL"): Promise<DashboardResponse> {
   const r = await fetch(`${API}/api/dashboard${q}`);
   if (!r.ok) throw new Error("Unable to load blockchain data");
   const dashboard = (await r.json()) as DashboardResponse;
+  const normalized: DashboardResponse = {
+    ...dashboard,
+    metrics: {
+      ...dashboard.metrics,
+      onchainVolumeUsd:
+        dashboard.metrics.onchainVolumeUsd ?? dashboard.metrics.totalUsd ?? 0,
+      offchainVolumeUsd: dashboard.metrics.offchainVolumeUsd ?? 0,
+      settlementCount:
+        dashboard.metrics.settlementCount ??
+        dashboard.metrics.pairedTransferCount ??
+        0,
+    },
+    transfers: (dashboard.transfers as Array<TransferRow | Omit<OnchainTransferRow, "settlementRoute">>).map((transfer) =>
+      "settlementRoute" in transfer
+        ? transfer
+        : { ...transfer, settlementRoute: "ONCHAIN" },
+    ),
+  };
 
-  if (dashboard.timeline.length === 0 && dashboard.transfers.length > 0) {
+  if (normalized.timeline.length === 0 && normalized.transfers.length > 0) {
     return {
-      ...dashboard,
-      timeline: timelineFromTransfers(dashboard.transfers),
+      ...normalized,
+      timeline: timelineFromTransfers(normalized.transfers),
     };
   }
 
-  return dashboard;
+  return normalized;
 }
 export async function getSyncStatus(): Promise<SynchronizationStatus> {
-  const r = await fetch(`${API}/api/dashboard/sync`);
-  if (!r.ok) throw new Error("Unable to check synchronization status");
-  return r.json();
+  const response = await fetch(`${API}/api/sync/status`);
+  if (response.ok) return response.json();
+  throw new Error("Unable to check synchronization status");
 }

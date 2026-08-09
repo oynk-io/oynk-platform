@@ -2,6 +2,7 @@ import { pool } from "./pool.js";
 import { readFile, readdir } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { seedOffchainTransactions } from "./seedOffchainTransactions.js";
 const sql = `
 CREATE TABLE IF NOT EXISTS tracked_wallets (
  id TEXT PRIMARY KEY, chain TEXT NOT NULL CHECK(chain IN ('BSC','SOLANA')), address TEXT NOT NULL,
@@ -64,5 +65,17 @@ for (const migrationName of migrationNames) {
     client.release();
   }
 }
-console.log("Database migrations applied and configured wallets preserved.");
+const seedClient = await pool.connect();
+let offchainTransactionCount = 0;
+try {
+  await seedClient.query("BEGIN");
+  offchainTransactionCount = await seedOffchainTransactions(seedClient);
+  await seedClient.query("COMMIT");
+} catch (error) {
+  await seedClient.query("ROLLBACK");
+  throw error;
+} finally {
+  seedClient.release();
+}
+console.log(`Database migrations applied; ${offchainTransactionCount} offchain transactions seeded.`);
 await pool.end();

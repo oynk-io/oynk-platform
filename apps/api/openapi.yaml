@@ -2,17 +2,18 @@ openapi: 3.1.0
 info:
   title: Oynk Activity API
   version: 1.1.0
-  description: Read-only indexed on-chain activity and restricted synchronization operations.
+  description: Read-only aggregate onchain and privacy-safe offchain settlement activity, plus restricted synchronization operations.
 servers:
   - url: /api
 paths:
   /dashboard:
     get:
-      summary: Get dashboard metrics, timeline, and recent transfers
+      summary: Get aggregate settlement metrics, timeline, and recent transactions
       parameters:
         - in: query
           name: chain
-          schema: { type: string, enum: [ALL, BSC, SOLANA], default: ALL }
+          description: ALL includes both settlement routes; BSC and SOLANA select onchain activity; OFFCHAIN selects partner-routed fiat settlement.
+          schema: { type: string, enum: [ALL, BSC, SOLANA, OFFCHAIN], default: ALL }
       responses:
         "200":
           description: Dashboard data
@@ -116,7 +117,7 @@ components:
       properties:
         metrics:
           type: object
-          description: Gross movement and reference-paired settlement metrics. Legacy fields remain for compatibility.
+          description: Gross non-cancelling cash movement across onchain and offchain settlement routes. Legacy fields remain for compatibility.
           additionalProperties: true
         timeline: { type: array, items: { type: object, additionalProperties: true } }
         transfers: { type: array, items: { type: object, additionalProperties: true } }
