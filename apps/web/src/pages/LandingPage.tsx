@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import {
   ArrowRight,
   Banknote,
@@ -45,22 +46,44 @@ function Wordmark() {
 function LandingHeader() {
   const [open, setOpen] = useState(false);
   const menuButtonRef = useRef<HTMLButtonElement>(null);
+  const mobileNavigationRef = useRef<HTMLElement>(null);
   const firstMobileLinkRef = useRef<HTMLAnchorElement>(null);
 
   useEffect(() => {
     if (!open) return;
 
-    function closeOnEscape(event: KeyboardEvent) {
-      if (event.key === "Escape") closeNavigation({ restoreFocus: true });
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        closeNavigation({ restoreFocus: true });
+        return;
+      }
+      if (event.key !== "Tab") return;
+      const focusable = Array.from(mobileNavigationRef.current?.querySelectorAll<HTMLElement>('a[href],button:not(:disabled)') ?? []);
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last?.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first?.focus();
+      }
+    }
+
+    function closeAtDesktop(event: MediaQueryListEvent) {
+      if (event.matches) setOpen(false);
     }
 
     const previousOverflow = document.body.style.overflow;
+    const desktopQuery = window.matchMedia("(min-width: 1024px)");
     document.body.style.overflow = "hidden";
     firstMobileLinkRef.current?.focus();
-    window.addEventListener("keydown", closeOnEscape);
+    window.addEventListener("keydown", handleKeyDown);
+    desktopQuery.addEventListener("change", closeAtDesktop);
     return () => {
       document.body.style.overflow = previousOverflow;
-      window.removeEventListener("keydown", closeOnEscape);
+      window.removeEventListener("keydown", handleKeyDown);
+      desktopQuery.removeEventListener("change", closeAtDesktop);
     };
   }, [open]);
 
@@ -73,25 +96,30 @@ function LandingHeader() {
     <header className="landing-header">
       <div className="landing-container flex h-[72px] items-center justify-between gap-6">
         <a href="/" aria-label="Oynk home"><Wordmark /></a>
-        <nav className="hidden items-center gap-7 lg:flex" aria-label="Primary navigation">
+        <nav className="landing-desktop-navigation items-center gap-7" aria-label="Primary navigation">
           {navigation.map((item) => <a key={item.label} href={item.href} className="landing-nav-link">{item.label}</a>)}
         </nav>
-        <div className="hidden items-center gap-3 lg:flex">
+        <div className="landing-desktop-actions items-center gap-3">
           <a href={`${consoleUrl}/login`} className="landing-nav-link">Sign in</a>
           <a href={`${consoleUrl}/signup`} className="landing-button landing-button-primary">Get started <ArrowRight size={16} aria-hidden="true" /></a>
         </div>
-        <button ref={menuButtonRef} type="button" className="landing-icon-button lg:hidden" onClick={() => open ? closeNavigation({ restoreFocus: true }) : setOpen(true)} aria-expanded={open} aria-controls="mobile-navigation" aria-label={open ? "Close navigation" : "Open navigation"}>
-          {open ? <X size={22} /> : <Menu size={22} />}
+        <button ref={menuButtonRef} type="button" className="landing-icon-button" onClick={() => setOpen(true)} aria-expanded={open} aria-controls="mobile-navigation" aria-label="Open navigation">
+          <Menu size={22} />
         </button>
       </div>
-      {open && (
-        <nav id="mobile-navigation" className="landing-mobile-nav lg:hidden" aria-label="Mobile navigation">
-          <div className="landing-container flex flex-col py-3">
+      {open && createPortal(
+        <div className="landing-mobile-layer">
+          <button type="button" className="landing-mobile-overlay" onClick={() => closeNavigation({ restoreFocus: true })} aria-label="Close navigation" tabIndex={-1} />
+          <nav ref={mobileNavigationRef} id="mobile-navigation" className="landing-mobile-nav" aria-label="Mobile navigation">
+            <div className="landing-mobile-nav-header"><a href="/" aria-label="Oynk home" onClick={() => closeNavigation()}><Wordmark /></a><button type="button" className="landing-icon-button landing-mobile-close" onClick={() => closeNavigation({ restoreFocus: true })} aria-label="Close navigation" aria-expanded={open} aria-controls="mobile-navigation"><X size={22} /></button></div>
+            <div className="flex flex-col py-3">
             {navigation.map((item, index) => <a ref={index === 0 ? firstMobileLinkRef : undefined} key={item.label} href={item.href} className="landing-mobile-link" onClick={() => closeNavigation()}>{item.label}<ChevronRight size={17} aria-hidden="true" /></a>)}
             <a href={`${consoleUrl}/login`} className="landing-mobile-link" onClick={() => closeNavigation()}>Sign in<ChevronRight size={17} /></a>
             <a href={`${consoleUrl}/signup`} className="landing-button landing-button-primary mt-3 justify-center" onClick={() => closeNavigation()}>Get started <ArrowRight size={16} aria-hidden="true" /></a>
-          </div>
-        </nav>
+            </div>
+          </nav>
+        </div>,
+        document.body,
       )}
     </header>
   );

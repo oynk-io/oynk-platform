@@ -1,0 +1,9 @@
+const ISO_CODES="AD AE AF AG AI AL AM AO AQ AR AS AT AU AW AX AZ BA BB BD BE BF BG BH BI BJ BL BM BN BO BQ BR BS BT BV BW BY BZ CA CC CD CF CG CH CI CK CL CM CN CO CR CU CV CW CX CY CZ DE DJ DK DM DO DZ EC EE EG EH ER ES ET FI FJ FK FM FO FR GA GB GD GE GF GG GH GI GL GM GN GP GQ GR GS GT GU GW GY HK HM HN HR HT HU ID IE IL IM IN IO IQ IR IS IT JE JM JO JP KE KG KH KI KM KN KP KR KW KY KZ LA LB LC LI LK LR LS LT LU LV LY MA MC MD ME MF MG MH MK ML MM MN MO MP MQ MR MS MT MU MV MW MX MY MZ NA NC NE NF NG NI NL NO NP NR NU NZ OM PA PE PF PG PH PK PL PM PN PR PS PT PW PY QA RE RO RS RU RW SA SB SC SD SE SG SH SI SJ SK SL SM SN SO SR SS ST SV SX SY SZ TC TD TF TG TH TJ TK TL TM TN TO TR TT TV TW TZ UA UG UM US UY UZ VA VC VE VG VI VN VU WF WS YE YT ZA ZM ZW".split(" ");
+const names=new Intl.DisplayNames(["en"],{type:"region"});
+const aliases:Record<string,string[]>={GB:["United Kingdom","Great Britain","Britain","UK"],US:["United States of America","USA","America"],AE:["United Arab Emirates","UAE"],KR:["South Korea"],KP:["North Korea"],CI:["Ivory Coast"]};
+export type Country={code:string;name:string;searchTerms:string};
+export const countries:readonly Country[]=ISO_CODES.map((code)=>{const name=names.of(code)??code;return{code,name,searchTerms:[name,code,...(aliases[code]??[])].join(" ").toLowerCase()};}).sort((a,b)=>a.name.localeCompare(b.name));
+const codes=new Set(ISO_CODES);
+export function hasCountry(value:string|null|undefined):boolean{return Boolean(value&&codes.has(value.toUpperCase()));}
+export function searchCountries(query:string):readonly Country[]{const normalized=query.trim().toLowerCase();return normalized?countries.filter((country)=>country.searchTerms.includes(normalized)):countries;}
+export function countryName(code:string):string{return countries.find((country)=>country.code===code)?.name??code;}

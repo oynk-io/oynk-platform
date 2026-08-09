@@ -1,0 +1,11 @@
+import type { FieldErrorMap } from "./formErrors";
+import { validationCopy } from "./validationCopy";
+import { hasCountry } from "../lib/countries";
+
+export type SignupValues={firstName:string;lastName:string;email:string;phone:string;legalName:string;tradingName:string;registrationCountry:string;operatingCountry:string;password:string;confirmPassword:string;acceptedTerms:boolean};
+const emailPattern=/^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const phonePattern=/^\+[1-9]\d{7,14}$/;
+export function validateSignup(values:SignupValues):FieldErrorMap{const errors:FieldErrorMap={};if(!values.firstName.trim())errors.firstName=validationCopy.firstName;if(!values.lastName.trim())errors.lastName=validationCopy.lastName;if(!emailPattern.test(values.email.trim()))errors.email=validationCopy.email;if(!phonePattern.test(values.phone.replace(/[\s()-]/g,"")))errors.phone=validationCopy.phone;if(!values.legalName.trim())errors.legalName=validationCopy.legalName;if(!hasCountry(values.registrationCountry))errors.registrationCountry=validationCopy.registrationCountry;if(!hasCountry(values.operatingCountry))errors.operatingCountry=validationCopy.operatingCountry;if(values.password.length<12||!/[a-z]/.test(values.password)||!/[A-Z]/.test(values.password)||!/[0-9]/.test(values.password))errors.password=validationCopy.password;if(values.password!==values.confirmPassword)errors.confirmPassword=validationCopy.confirmPassword;if(!values.acceptedTerms)errors.acceptedTerms=validationCopy.acceptedTerms;return errors;}
+export function validateLogin(values:{email:string;password:string}):FieldErrorMap{const errors:FieldErrorMap={};if(!emailPattern.test(values.email.trim()))errors.email=validationCopy.email;if(!values.password)errors.password=validationCopy.requiredPassword;return errors;}
+export function validateOtp(code:string):FieldErrorMap{return /^\d{6}$/.test(code)?{}:{code:validationCopy.otp};}
+export function validateReset(values:{code:string;password:string;confirmPassword:string}):FieldErrorMap{const errors=validateOtp(values.code);if(values.password.length<12||!/[a-z]/.test(values.password)||!/[A-Z]/.test(values.password)||!/[0-9]/.test(values.password))errors.password=validationCopy.password;if(values.password!==values.confirmPassword)errors.confirmPassword=validationCopy.confirmPassword;return errors;}

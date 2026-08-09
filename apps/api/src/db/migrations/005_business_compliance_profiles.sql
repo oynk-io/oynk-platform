@@ -1,0 +1,23 @@
++CREATE TABLE business_compliance_profiles (
+  organization_id UUID PRIMARY KEY REFERENCES organizations(id) ON DELETE CASCADE,
+  organization_type TEXT NOT NULL,
+  registration_number TEXT NOT NULL DEFAULT '',
+  incorporation_date DATE,
+  tax_identification_number TEXT NOT NULL DEFAULT '',
+  website TEXT NOT NULL DEFAULT '',
+  industry TEXT NOT NULL DEFAULT '',
+  business_description TEXT NOT NULL DEFAULT '',
+  address_line_1 TEXT NOT NULL DEFAULT '',
+  address_line_2 TEXT NOT NULL DEFAULT '',
+  city TEXT NOT NULL DEFAULT '',
+  region TEXT NOT NULL DEFAULT '',
+  postal_code TEXT NOT NULL DEFAULT '',
+  address_country TEXT NOT NULL DEFAULT '',
+  expected_monthly_volume NUMERIC(30,2),
+  expected_monthly_transactions BIGINT,
+  source_of_funds TEXT NOT NULL DEFAULT '',
+  status TEXT NOT NULL DEFAULT 'DRAFT' CHECK (status IN ('DRAFT','SUBMITTED')),
+  updated_by UUID REFERENCES users(id) ON DELETE SET NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);

@@ -165,3 +165,27 @@ export type AuthErrorResponse = {
   requestId?: string;
   fieldErrors?: Record<string, string>;
 };
+
+export type BusinessComplianceProfile = {
+  legalName: string;
+  tradingName: string;
+  organizationType: string;
+  registrationNumber: string;
+  registrationCountry: string;
+  incorporationDate: string;
+  taxIdentificationNumber: string;
+  website: string;
+  industry: string;
+  businessDescription: string;
+  addressLine1: string;
+  addressLine2: string;
+  city: string;
+  region: string;
+  postalCode: string;
+  addressCountry: string;
+  expectedMonthlyVolume: string;
+  expectedMonthlyTransactions: string;
+  sourceOfFunds: string;
+  status: "DRAFT" | "SUBMITTED";
+  updatedAt: string | null;
+};
