@@ -30,8 +30,8 @@ export default function Router() {
   switch (window.location.pathname) {
     case "/":
       updateMetadata(
-        "Oynk — Cross-Border Settlement Infrastructure",
-        "Oynk connects payment platforms, liquidity providers, and local settlement partners through a modular cross-border settlement network.",
+        "Oynk — Payment Infrastructure for Connected Economies",
+        "Oynk is building programmable payment and settlement infrastructure for cross-border transfers, everyday payments, merchant commerce, and qualified network partners.",
         "#fafbf8"
       );
       return <LandingPage />;

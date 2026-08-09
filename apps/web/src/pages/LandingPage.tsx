@@ -14,8 +14,10 @@ import {
   KeyRound,
   Menu,
   Network,
+  PiggyBank,
   RadioTower,
   Route,
+  ScanLine,
   ShieldCheck,
   Smartphone,
   Store,
@@ -27,7 +29,7 @@ const navigation = [
   { label: "How it works", href: "#how-it-works" },
   { label: "Architecture", href: "#architecture" },
   { label: "Network", href: "#network" },
-  { label: "Solutions", href: "#solutions" },
+  { label: "Products", href: "#products" },
   { label: "Experience", href: "#experience" },
   { label: "Activity", href: "/dashboard" },
 ] as const;
@@ -209,6 +211,33 @@ const architecturePrinciples = [
   },
 ] as const;
 
+const productDirections = [
+  {
+    icon: Globe2,
+    status: "Current focus",
+    title: "Cross-border payments",
+    copy: "Coordinate payment demand, digital settlement, liquidity, and local payout through qualified providers instead of a separate stack for every corridor.",
+  },
+  {
+    icon: Banknote,
+    status: "Product direction",
+    title: "Everyday and micro-payments",
+    copy: "Support smaller, frequent payments for people and businesses where high fees, disconnected rails, and cash-heavy workflows make digital commerce harder.",
+  },
+  {
+    icon: ScanLine,
+    status: "Product direction",
+    title: "Merchant and terminal payments",
+    copy: "Extend the same payment foundation to service payments, stores, transport operators, and other merchants through software and point-of-sale experiences.",
+  },
+  {
+    icon: PiggyBank,
+    status: "Product direction",
+    title: "Savings-oriented experiences",
+    copy: "Enable partner-supported tools for holding, organizing, and moving value more predictably, subject to market-specific licensing, custody, and consumer-protection requirements.",
+  },
+] as const;
+
 export function LandingPage() {
   return (
     <div className="landing-page">
@@ -217,9 +246,9 @@ export function LandingPage() {
         <section className="landing-hero" aria-labelledby="hero-title">
           <div className="landing-container grid items-center gap-14 py-20 lg:grid-cols-[1.02fr_.98fr] lg:py-28 xl:gap-20">
             <div>
-              <div className="landing-kicker"><Globe2 size={15} aria-hidden="true" /> Cross-border settlement infrastructure</div>
-              <h1 id="hero-title" className="landing-hero-title">One network for cross-border settlement.</h1>
-              <p className="landing-hero-copy">Oynk connects payment platforms, liquidity providers, and local settlement partners through a programmable, distributed settlement network designed for modular expansion and clearer transaction visibility.</p>
+              <div className="landing-kicker"><Globe2 size={15} aria-hidden="true" /> Payment infrastructure for connected economies</div>
+              <h1 id="hero-title" className="landing-hero-title">One network for moving money across markets.</h1>
+              <p className="landing-hero-copy">Oynk is building a programmable payment and settlement network for fast-growing economies—connecting payment platforms, qualified liquidity providers, and local partners across cross-border transfers, everyday payments, and merchant commerce.</p>
               <div className="mt-8 flex flex-col gap-3 sm:flex-row">
                 <a href="#network" className="landing-button landing-button-primary">Explore the network <ArrowRight size={17} aria-hidden="true" /></a>
                 <a href="/dashboard" className="landing-button landing-button-secondary">View on-chain activity</a>
@@ -284,9 +313,26 @@ export function LandingPage() {
           </div>
         </section>
 
+        <section id="products" className="landing-section product-direction-section scroll-mt-20">
+          <div className="landing-container">
+            <div className="product-direction-heading">
+              <SectionHeading eyebrow="One foundation, multiple payment needs" title="From cross-border settlement to everyday economic activity." copy="Fast-growing markets often rely on disconnected bank transfers, cash, wallets, card networks, exchange liquidity, and manual payout relationships. Oynk’s long-term product direction is to connect these fragmented experiences through a common coordination and settlement foundation." />
+              <div className="product-thesis" role="note">
+                <span>Product thesis</span>
+                <strong>Movement. Acceptance. Resilience.</strong>
+                <p>Build the shared infrastructure once, then deliver focused experiences for people, businesses, and qualified network partners.</p>
+              </div>
+            </div>
+            <div className="product-direction-grid">
+              {productDirections.map((product) => <article key={product.title} className="product-direction-card"><div className="product-direction-card-top"><span className="product-direction-icon"><product.icon size={22} aria-hidden="true" /></span><span className={product.status === "Current focus" ? "product-status product-status-current" : "product-status"}>{product.status}</span></div><h3>{product.title}</h3><p>{product.copy}</p></article>)}
+            </div>
+            <p className="product-direction-note">Roadmap capabilities are not presented as currently available financial products. Launch scope will depend on partner coverage, regulatory permissions, safeguarding arrangements, compliance controls, and market readiness.</p>
+          </div>
+        </section>
+
         <section id="solutions" className="landing-section scroll-mt-20">
           <div className="landing-container">
-            <SectionHeading eyebrow="Solutions" title="Infrastructure for platforms and network participants." copy="Oynk is designed to support multiple payment experiences, settlement providers, liquidity sources, and destination markets through one coordination layer." />
+            <SectionHeading eyebrow="Who it serves" title="Infrastructure for platforms and network participants." copy="Oynk is designed to support multiple payment experiences, settlement providers, liquidity sources, merchants, and destination markets through one coordination layer." />
             <div className="mt-12 grid gap-4 md:grid-cols-2">
               {solutions.map((solution) => <article key={solution.title} className="solution-card"><span className="solution-card-icon"><solution.icon size={22} aria-hidden="true" /></span><div><h3>{solution.title}</h3><p>{solution.copy}</p></div></article>)}
             </div>
@@ -399,13 +445,13 @@ export function LandingPage() {
 
       <footer className="landing-footer">
         <div className="landing-container grid gap-10 py-12 md:grid-cols-[1fr_auto] md:items-start">
-          <div><a href="/" aria-label="Oynk home"><Wordmark /></a><p className="mt-4 max-w-sm text-sm leading-6 text-[#66766f]">Programmable cross-border settlement infrastructure for payment platforms and qualified network participants.</p></div>
+          <div><a href="/" aria-label="Oynk home"><Wordmark /></a><p className="mt-4 max-w-sm text-sm leading-6 text-[#66766f]">Programmable payment and settlement infrastructure for connected, fast-growing economies.</p></div>
           <nav className="grid grid-cols-2 gap-x-10 gap-y-3 text-sm sm:grid-cols-3" aria-label="Footer navigation">
             {navigation.map((item) => <a key={item.label} href={item.href} className="footer-link">{item.label}</a>)}
             <a href="https://docs.oynk.io/docs" className="footer-link">Documentation</a>
           </nav>
         </div>
-        <div className="border-t border-[#dfe5e1]"><div className="landing-container flex flex-col gap-2 py-5 text-xs text-[#7a8883] sm:flex-row sm:items-center sm:justify-between"><span>© {new Date().getFullYear()} Oynk. All rights reserved.</span><span>Cross-border settlement, connected.</span></div></div>
+        <div className="border-t border-[#dfe5e1]"><div className="landing-container flex flex-col gap-2 py-5 text-xs text-[#7a8883] sm:flex-row sm:items-center sm:justify-between"><span>© {new Date().getFullYear()} Oynk. All rights reserved.</span><span>Payments and settlement, connected.</span></div></div>
       </footer>
     </div>
   );
