@@ -10,7 +10,7 @@ flowchart LR
   Operator[Authorized operator] -->|privileged action| Control
   Control -->|minimum necessary data| Compliance[Compliance service]
   Control -->|assigned task| Provider[Qualified provider]
-  Control -.|signed invocation| Contract[Soroban contract]
+  Control -. signed invocation .-> Contract[Soroban contract]
   Contract --> Stellar[Stellar ledger]
   Stellar -. events .-> Indexer[Future Stellar indexer]
   RPC[BSC / Solana RPC] --> Current[Current indexers]
