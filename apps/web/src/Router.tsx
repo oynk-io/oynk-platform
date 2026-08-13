@@ -1,24 +1,5 @@
-import { lazy, Suspense } from "react";
 import { LandingPage } from "./pages/LandingPage";
 import { NotFoundPage } from "./pages/NotFoundPage";
-
-const DashboardPage = lazy(() =>
-  import("./App").then((module) => ({ default: module.DashboardPage }))
-);
-const TransactionsPage = lazy(() =>
-  import("./pages/TransactionsPage").then((module) => ({ default: module.TransactionsPage }))
-);
-
-function DashboardFallback() {
-  return (
-    <main className="dashboard-page grid min-h-screen place-items-center bg-[#07110e] px-6 text-center" role="status">
-      <div>
-        <span className="mx-auto grid h-10 w-10 place-items-center rounded-lg bg-emerald-300 font-black text-[#07110e]">O</span>
-        <p className="mt-4 text-sm text-slate-400">Loading network activity…</p>
-      </div>
-    </main>
-  );
-}
 
 function updateMetadata(title: string, description: string, themeColor: string) {
   document.title = title;
@@ -37,20 +18,12 @@ export default function Router() {
       return <LandingPage />;
     case "/dashboard":
     case "/dashboard/":
-      updateMetadata(
-        "Indexed On-Chain Activity — Oynk",
-        "Explore BSC and Solana transactions currently indexed by Oynk, including inflows, outflows, tracked wallets, and explorer records.",
-        "#07110e"
-      );
-      return <Suspense fallback={<DashboardFallback />}><DashboardPage /></Suspense>;
+      window.location.replace(`${import.meta.env.VITE_TRANSACTIONS_SITE_URL ?? "https://transactions.oynk.io"}/`);
+      return null;
     case "/dashboard/transactions":
     case "/dashboard/transactions/":
-      updateMetadata(
-        "Transactions — Oynk",
-        "Search and verify BSC and Solana transactions indexed across Oynk settlement wallets.",
-        "#0b0f0e"
-      );
-      return <Suspense fallback={<DashboardFallback />}><TransactionsPage /></Suspense>;
+      window.location.replace(`${import.meta.env.VITE_TRANSACTIONS_SITE_URL ?? "https://transactions.oynk.io"}/transactions`);
+      return null;
     default:
       updateMetadata(
         "Page Not Found — Oynk",

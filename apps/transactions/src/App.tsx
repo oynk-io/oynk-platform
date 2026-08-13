@@ -75,7 +75,7 @@ export function DashboardPage() {
 
             <section className="mt-6 rounded-2xl border border-white/8 bg-white/[.035] p-4 sm:p-6" aria-labelledby="activity-heading"><div className="mb-3"><div className="flex flex-wrap items-center justify-between gap-3"><h2 id="activity-heading" className="font-semibold text-white">Cash flow</h2><span className="rounded-full border border-white/8 bg-black/10 px-2.5 py-1 text-xs text-slate-400">Last 365 days</span></div><p className="mt-1 text-sm text-slate-500">Total value moved with daily cash in and cash out</p></div><VolumeChart data={data.timeline} /></section>
 
-            <section className="mt-7" aria-labelledby="transactions-heading"><div className="mb-4 flex items-end justify-between gap-4"><div><h2 id="transactions-heading" className="text-lg font-semibold text-white">Recent transactions</h2><p className="mt-1 text-sm text-slate-500">Onchain explorer evidence and privacy-safe offchain records.</p></div><a href="/dashboard/transactions" className="secondary-button rounded-lg px-3 py-2 text-sm">View all loaded transactions</a></div><TransferTable rows={data.transfers.slice(0, 5)} compact /></section>
+            <section className="mt-7" aria-labelledby="transactions-heading"><div className="mb-4 flex items-end justify-between gap-4"><div><h2 id="transactions-heading" className="text-lg font-semibold text-white">Recent transactions</h2><p className="mt-1 text-sm text-slate-500">Onchain explorer evidence and privacy-safe offchain records.</p></div><a href="/transactions" className="secondary-button rounded-lg px-3 py-2 text-sm">View all loaded transactions</a></div><TransferTable rows={data.transfers.slice(0, 5)} compact /></section>
           </>
         )}
     </ConsoleShell>

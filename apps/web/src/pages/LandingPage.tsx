@@ -7,6 +7,7 @@ import {
   CheckCircle2,
   ChevronRight,
   Eye,
+  Github,
   Globe2,
   Handshake,
   Landmark,
@@ -21,10 +22,13 @@ import {
   ShieldCheck,
   Smartphone,
   Store,
+  Twitter,
   Workflow,
   X,
 } from "lucide-react";
 import { BrandMark } from "../components/BrandMark";
+
+const transactionsUrl = import.meta.env.VITE_TRANSACTIONS_SITE_URL ?? "https://transactions.oynk.io";
 
 const navigation = [
   { label: "How it works", href: "#how-it-works" },
@@ -32,7 +36,6 @@ const navigation = [
   { label: "Network", href: "#network" },
   { label: "Products", href: "#products" },
   { label: "Experience", href: "#experience" },
-  { label: "Activity", href: "/dashboard" },
 ] as const;
 
 const consoleUrl = import.meta.env.VITE_CONSOLE_SITE_URL ?? "https://console.oynk.io";
@@ -252,7 +255,7 @@ export function LandingPage() {
               <p className="landing-hero-copy">Oynk is a programmable payment and settlement platform designed for fast-growing economies—connecting payment platforms, qualified liquidity providers, and local partners across cross-border transfers, everyday payments, and merchant commerce.</p>
               <div className="mt-8 flex flex-col gap-3 sm:flex-row">
                 <a href="#network" className="landing-button landing-button-primary">Explore the network <ArrowRight size={17} aria-hidden="true" /></a>
-                <a href="/dashboard" className="landing-button landing-button-secondary">View on-chain activity</a>
+                <a href={transactionsUrl} className="landing-button landing-button-secondary">View on-chain activity</a>
               </div>
               <p className="mt-6 flex items-center gap-2 text-sm text-[#60716b]"><span className="h-1.5 w-1.5 rounded-full bg-[#e8765a]" aria-hidden="true" />Independent of any single exchange, bank, marketplace, or liquidity source.</p>
             </div>
@@ -343,12 +346,12 @@ export function LandingPage() {
         <section id="experience" className="landing-section experience-section scroll-mt-20">
           <div className="landing-container grid items-center gap-12 lg:grid-cols-[.78fr_1.22fr] lg:gap-20">
             <div className="experience-marker">
-              <span className="experience-value">$200,000+</span>
-              <span className="experience-label">Cross-border activity facilitated by Oynk’s founder since 2022</span>
-              <small>Founder-led operating experience; this does not represent Oynk network activity.</small>
+              <span className="experience-value">$2,000,000 USD</span>
+              <span className="experience-label">Cross-border activity facilitated by Oynk’s founder</span>
+              <small>Combined onchain settlement and offchain fiat-to-fiat payment activity.</small>
             </div>
             <div>
-              <SectionHeading eyebrow="Built from operating experience" title="The network is grounded in real settlement challenges." copy="Since 2022, Oynk’s founder has facilitated more than $200,000 in cross-border settlements using digital assets as the settlement mechanism for demand between the United States and Nigeria." />
+              <SectionHeading eyebrow="Built from operating experience" title="The network is grounded in real settlement challenges." copy="Oynk’s founder has facilitated approximately $2,000,000 USD in cross-border settlements using digital assets as the settlement mechanism for demand between the United States and Nigeria." />
               <p className="mt-5 max-w-2xl text-[.95rem] leading-7 text-[#60716b]">That hands-on experience exposed recurring challenges around fragmented liquidity, foreign-exchange pricing, manual settlement coordination, payout fulfillment, delays, and transaction visibility. Oynk is being built to turn those operational lessons into repeatable, programmable infrastructure for payment platforms and qualified settlement providers.</p>
             </div>
           </div>
@@ -415,7 +418,7 @@ export function LandingPage() {
                 <p className="landing-eyebrow">Transaction visibility</p>
                 <h2 className="landing-section-title">Explore indexed on-chain activity.</h2>
                 <p className="landing-section-copy">View the blockchain transactions currently indexed by Oynk’s activity dashboard, including recorded transaction flows and supported chain activity.</p>
-                <a href="/dashboard" className="landing-button landing-button-light mt-8">Explore network activity <ArrowRight size={17} aria-hidden="true" /></a>
+                <a href={transactionsUrl} className="landing-button landing-button-light mt-8">Explore network activity <ArrowRight size={17} aria-hidden="true" /></a>
               </div>
               <div className="activity-visual" aria-hidden="true">
                 <div className="activity-visual-top"><span>Recorded activity</span><span className="activity-live-dot">On-chain</span></div>
@@ -439,7 +442,7 @@ export function LandingPage() {
         <section className="px-4 py-20 sm:px-6 sm:py-28">
           <div className="final-cta">
             <div><p className="landing-eyebrow">Build the network</p><h2>Help shape the next generation of cross-border settlement.</h2><p>Oynk is designed for payment platforms, qualified liquidity providers, local settlement providers, and infrastructure partners.</p></div>
-            <div className="flex shrink-0 flex-col gap-3 sm:flex-row"><a href="https://docs.oynk.io/docs" className="landing-button landing-button-light">Review the architecture <ArrowRight size={17} aria-hidden="true" /></a><a href="/dashboard" className="landing-button landing-button-ghost-light">View activity</a></div>
+            <div className="flex shrink-0 flex-col gap-3 sm:flex-row"><a href="https://docs.oynk.io" target="_blank" rel="noopener noreferrer" className="landing-button landing-button-light">Review the architecture <ArrowRight size={17} aria-hidden="true" /></a><a href={transactionsUrl} className="landing-button landing-button-ghost-light">View activity</a></div>
           </div>
         </section>
       </main>
@@ -449,7 +452,9 @@ export function LandingPage() {
           <div><a href="/" aria-label="Oynk home"><Wordmark /></a><p className="mt-4 max-w-sm text-sm leading-6 text-[#66766f]">Programmable payment and settlement infrastructure for connected, fast-growing economies.</p></div>
           <nav className="grid grid-cols-2 gap-x-10 gap-y-3 text-sm sm:grid-cols-3" aria-label="Footer navigation">
             {navigation.map((item) => <a key={item.label} href={item.href} className="footer-link">{item.label}</a>)}
-            <a href="https://docs.oynk.io/docs" className="footer-link">Documentation</a>
+            <a href="https://docs.oynk.io" target="_blank" rel="noopener noreferrer" className="footer-link">Documentation</a>
+            <a href="https://x.com/oynk_io" target="_blank" rel="noopener noreferrer" className="footer-link inline-flex items-center gap-2" aria-label="Oynk on X"><Twitter size={15} aria-hidden="true" />X / Twitter</a>
+            <a href="https://github.com/oynk-io" target="_blank" rel="noopener noreferrer" className="footer-link inline-flex items-center gap-2" aria-label="Oynk on GitHub"><Github size={15} aria-hidden="true" />GitHub</a>
           </nav>
         </div>
         <div className="border-t border-[#dfe5e1]"><div className="landing-container flex flex-col gap-2 py-5 text-xs text-[#7a8883] sm:flex-row sm:items-center sm:justify-between"><span>© {new Date().getFullYear()} Oynk. All rights reserved.</span><span>Payments and settlement, connected.</span></div></div>

@@ -136,7 +136,7 @@ These must be shown as disabled roadmap destinations or honest â€œnot connectedâ
 - API keys/webhooks/API logs
 - Organization/team/security/compliance/notifications
 
-Documentation remains an external destination at `https://docs.oynk.io/docs`.
+Documentation remains an external destination at `https://docs.oynk.io`.
 
 ## Implementation plan
 
@@ -152,4 +152,3 @@ Documentation remains an external destination at `https://docs.oynk.io/docs`.
 ## Scope decision
 
 No new dependency is justified. The application has two connected console routes, so its lightweight pathname routing remains adequate. A routing/query/component framework should be reconsidered when server-side pagination, transaction details, authenticated operator workflows, and nested settings become real API-backed product surfaces.
-

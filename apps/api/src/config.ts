@@ -30,7 +30,7 @@ const schema = z.object({
 	 * Comma-separated list of origins allowed to call the API.
 	 * When unset, falls back to ALLOWED_ORIGIN.
 	 */
-	CORS_ORIGINS: z.string().default("http://localhost:5173,http://localhost:5174,https://oynk.io,https://console.oynk.io"),
+	CORS_ORIGINS: z.string().default("http://localhost:5173,http://localhost:5174,http://localhost:5175,https://oynk.io,https://console.oynk.io,https://transactions.oynk.io"),
 
 	BSC_RPC_URL: z.string().url(),
 	SOLANA_RPC_URL: z.string().url(),
