@@ -1,0 +1,35 @@
+---
+title: "Repository map"
+description: "Where Oynk's shared contracts, backend logic, frontends, documentation, tests, and migrations live."
+icon: "folder-tree"
+---
+
+```text
+apps/
+  api/       Express API, PostgreSQL migrations, auth, compliance, indexers
+  console/   Authenticated organization console
+  docs/      Mintlify docs.json, MDX pages, assets, validator
+  web/       Public site and indexed-activity dashboard
+packages/
+  shared/    Cross-package TypeScript domain contracts
+docs/
+  architecture/  Internal source architecture
+  internal/      Audits, runbooks, and implementation notes
+```
+
+## Important extension points
+
+| Path | Responsibility |
+| --- | --- |
+| `apps/api/src/config.ts` | Validated environment configuration |
+| `apps/api/src/services/tokens.ts` | Current supported BSC/Solana token identities and valuation assumptions |
+| `apps/api/src/indexers/` | Chain-specific ingestion |
+| `apps/api/src/services/syncService.ts` | Global run coordination and durable status |
+| `apps/api/src/services/dashboardService.ts` | Metric and recent-activity aggregation |
+| `apps/api/src/services/pairingService.ts` | Non-authoritative heuristic leg correlation |
+| `apps/api/src/auth/` | Password, OTP, session, permission, and audit logic |
+| `apps/api/src/db/migrations/` | Append-only schema history |
+| `apps/api/openapi.yaml` | Current generated HTTP reference source |
+| `packages/shared/src/index.ts` | Shared response and identity contracts |
+
+Future Soroban contracts should live in a clearly owned workspace with Rust tooling, contract tests, generated bindings, deployment manifests, and network-specific configuration. Shared off-chain types belong in `@oynk/shared`; contract-specific generated clients should not blur web/API ownership.

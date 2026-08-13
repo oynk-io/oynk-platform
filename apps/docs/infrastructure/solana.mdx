@@ -1,0 +1,22 @@
+---
+title: "Solana indexing"
+description: "Tracked owners and token sources, parsed balances, deterministic identity, and current Solana limitations."
+icon: "waves"
+---
+
+The Solana indexer observes configured settlement wallets and sources, requests recent signatures, loads parsed transactions, and derives supported token movement from pre/post token balances.
+
+## Supported assets
+
+- USDT mint with 6 decimals and operational USD price 1
+- USDC mint with 6 decimals and operational USD price 1
+
+Sources can represent an owner, associated token account, token account, or manual address. `SOLANA_ADDITIONAL_SOURCE_ACCOUNTS` can add deployment-specific sources without hardcoding them.
+
+## Status handling
+
+Confirmed observations are eligible for reporting and pairing. Failed transactions are retained as `FAILED` for visibility but excluded from pairing. Deterministic identities prevent the same observation from creating duplicate transfers.
+
+## Current limitations
+
+The configured signature limit bounds each source scan. Production still needs durable historical pagination/checkpoints, more complete source discovery, Token-2022 coverage, and an automatic retry worker for durable failure records. Public RPC history may be incomplete or throttled; production requires reliable archival providers.

@@ -1,0 +1,32 @@
+---
+title: "Stellar asset and payment model"
+description: "How Stellar assets, trustlines, contract token interfaces, fees, and finality would enter an Oynk route."
+icon: "coins"
+---
+
+## Asset allowlisting
+
+Each environment needs an allowlist keyed by network plus canonical asset identity. For classic Stellar assets, identity includes code and issuer. For token contracts, it includes the verified contract address and the underlying asset relationship. Symbols alone are never sufficient.
+
+Oynk must validate:
+
+- The configured Stellar network/passphrase
+- Asset code, issuer, or token contract identity
+- Decimal/scalar conversion and exact integer amount
+- Trustline or authorization prerequisites
+- Issuer controls such as authorization or clawback where applicable
+- Recipient address and any contract-specific authorization requirements
+
+## Transaction submission
+
+The control plane or a dedicated submitter should build the intended operation, simulate Soroban invocations, apply resource and fee policy, collect required authorization, set bounded time conditions, submit once under an idempotent request, and persist the transaction hash before polling status.
+
+Network acceptance is not enough to complete a payment. Oynk should wait for the defined successful ledger/contract result, index the corresponding event, correlate it to the settlement reference, and separately verify required fiat evidence.
+
+## Fees and sponsorship
+
+If Oynk sponsors account reserves or transaction fees, sponsorship is a risk-controlled product feature. Policies must cap spend, restrict eligible operations, prevent arbitrary transaction relaying, and account for abuse and reserve recovery.
+
+## Cross-chain visibility
+
+The existing BSC and Solana indexers can remain useful when providers operate across multiple rails. They should not be merged into Soroban state by amount/time similarity. Correlation must use explicit references issued by the control plane.

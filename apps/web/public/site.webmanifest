@@ -1,0 +1,13 @@
+{
+  "name": "Oynk",
+  "short_name": "Oynk",
+  "description": "Programmable payment and settlement infrastructure for connected economies.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#fafbf8",
+  "theme_color": "#153e32",
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}

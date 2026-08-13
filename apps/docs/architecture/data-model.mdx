@@ -1,0 +1,32 @@
+---
+title: "Data model"
+description: "Implemented PostgreSQL records and the records required by the future payment and Soroban control plane."
+icon: "database"
+---
+
+## Implemented records
+
+| Table | Purpose |
+| --- | --- |
+| `tracked_wallets` | Enabled BSC and Solana settlement addresses |
+| `transfers` | Wallet-relative on-chain token movement with raw/normalized amounts, direction, status, and pairing metadata |
+| `sync_state` | Incremental index checkpoints |
+| `sync_runs` | Durable run status, counts, timestamps, mode, and metadata |
+| `indexer_failures` | Retry-oriented failure records keyed by chain, source, and transaction |
+| `tracked_solana_sources` | Owner/token/manual Solana sources and optional mint scope |
+| `offchain_transactions` | Privacy-safe fiat activity keyed by an external reference |
+| `users`, `sessions`, `otp_challenges` | Identity and access lifecycle |
+| `organizations`, `organization_memberships` | Tenant boundary, status, mode, role, and membership |
+| `roles`, `permissions`, `role_permissions` | Organization-scoped RBAC policy |
+| `business_compliance_profiles` | Validated business verification draft data |
+| `audit_logs`, `email_deliveries` | Security-relevant actions and delivery outcomes |
+
+## Transfer identity
+
+A transfer is recorded once for every tracked wallet it affects. Deterministic uniqueness prevents replayed BSC logs or Solana observations from creating duplicates. BSC cursor identity includes the normalized wallet and token contract; it is not keyed only by a mutable symbol.
+
+Reference fields—`payment_reference`, `settlement_reference`, `corridor_reference`, origin/destination leg IDs, pairing method, confidence, and paired time—prepare indexed movement for future authoritative correlation.
+
+## Future records
+
+The payment plane still needs versioned schemas for payment requests, quotes, acceptances, provider assignments, funding instructions, compliance decisions, Soroban network/contract identifiers, transaction submissions, contract events, payout evidence, disputes, refunds, and reconciliation outcomes. These records should be introduced through new migrations, never by rewriting historical migrations.

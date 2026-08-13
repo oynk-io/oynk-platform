@@ -24,6 +24,7 @@ import {
   Workflow,
   X,
 } from "lucide-react";
+import { BrandMark } from "../components/BrandMark";
 
 const navigation = [
   { label: "How it works", href: "#how-it-works" },
@@ -39,7 +40,7 @@ const consoleUrl = import.meta.env.VITE_CONSOLE_SITE_URL ?? "https://console.oyn
 function Wordmark() {
   return (
     <span className="wordmark">
-      <span className="wordmark-mark" aria-hidden="true">O</span>
+      <BrandMark className="wordmark-mark" />
       <span>Oynk</span>
     </span>
   );
@@ -139,7 +140,7 @@ function NetworkVisual() {
         <span><strong>Payment platform</strong><small>Payment request</small></span>
       </div>
       <div className="network-core">
-        <span className="wordmark-mark" aria-hidden="true">O</span>
+        <BrandMark className="wordmark-mark" />
         <strong>Oynk</strong>
         <small>Settlement network</small>
       </div>
@@ -248,7 +249,7 @@ export function LandingPage() {
             <div>
               <div className="landing-kicker"><Globe2 size={15} aria-hidden="true" /> Payment infrastructure for connected economies</div>
               <h1 id="hero-title" className="landing-hero-title">One network for moving money across markets.</h1>
-              <p className="landing-hero-copy">Oynk is building a programmable payment and settlement network for fast-growing economies—connecting payment platforms, qualified liquidity providers, and local partners across cross-border transfers, everyday payments, and merchant commerce.</p>
+              <p className="landing-hero-copy">Oynk is a programmable payment and settlement platform designed for fast-growing economies—connecting payment platforms, qualified liquidity providers, and local partners across cross-border transfers, everyday payments, and merchant commerce.</p>
               <div className="mt-8 flex flex-col gap-3 sm:flex-row">
                 <a href="#network" className="landing-button landing-button-primary">Explore the network <ArrowRight size={17} aria-hidden="true" /></a>
                 <a href="/dashboard" className="landing-button landing-button-secondary">View on-chain activity</a>

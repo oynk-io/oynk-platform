@@ -1,0 +1,20 @@
+---
+title: "Glossary"
+description: "Terms used throughout the Oynk platform and settlement architecture."
+icon: "book-a"
+---
+
+<AccordionGroup>
+  <Accordion title="Control plane">The authoritative application layer that owns requests, quotes, policy decisions, provider assignments, references, and lifecycle state. It is proposed for payments and only partially implemented for identity/compliance.</Accordion>
+  <Accordion title="Data plane">The rails that move value: local fiat systems, BSC, Solana, and—in the target architecture—Stellar assets governed by Soroban settlement rules.</Accordion>
+  <Accordion title="Settlement reference">A stable identifier issued by an authoritative payment system and propagated across provider, on-chain, reconciliation, and reporting records.</Accordion>
+  <Accordion title="Settlement provider">A qualified organization that performs an approved funding, conversion, liquidity, or local payout leg under corridor-specific limits.</Accordion>
+  <Accordion title="Liquidity provider">A participant that quotes or commits the settlement asset or foreign-exchange liquidity required by a route.</Accordion>
+  <Accordion title="Soroban">Stellar's smart-contract platform. Oynk proposes using it for auditable settlement state and bounded authorization; this repository does not yet contain a contract.</Accordion>
+  <Accordion title="Smart account">A planned programmable authorization boundary that can enforce delegates, spend caps, expiry, nonces, and recovery rules.</Accordion>
+  <Accordion title="G-account">A standard Stellar account address whose authorization can participate in Soroban contract calls.</Accordion>
+  <Accordion title="Gross transfer volume">The sum of indexed transfer legs. It measures observed movement and can count both sides of a settlement.</Accordion>
+  <Accordion title="Estimated settled volume">The conservative smaller value of authoritative reference-paired legs, plus recorded off-chain transactions. Heuristic pairs are excluded from the authoritative estimate.</Accordion>
+  <Accordion title="Safe tip">The newest BSC block eligible for indexing after subtracting configured confirmation depth.</Accordion>
+  <Accordion title="Rewind">Reprocessing recent blocks so reorganizations can be reconciled while deterministic identities prevent duplicates.</Accordion>
+</AccordionGroup>

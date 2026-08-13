@@ -9,6 +9,7 @@ import {
   Menu,
   X,
 } from "lucide-react";
+import { BrandMark } from "../BrandMark";
 
 type NavItem = { label: string; href: string; icon: LucideIcon };
 
@@ -52,13 +53,13 @@ export function ConsoleShell({ title, description, children, actions }: { title:
   return <div className={`console-shell ${collapsed ? "is-collapsed" : ""}`}>
     <a href="#console-content" className="console-skip-link">Skip to workspace</a>
     <aside className="console-sidebar" aria-label="Oynk workspace">
-      <div className="console-brand"><a href="/" aria-label="Oynk home"><span>O</span><strong>Oynk</strong></a><button type="button" onClick={() => setCollapsed((current) => !current)} aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}><ChevronLeft size={16} className={collapsed ? "rotate-180" : ""} /></button></div>
+      <div className="console-brand"><a href="/" aria-label="Oynk home"><BrandMark /><strong>Oynk</strong></a><button type="button" onClick={() => setCollapsed((current) => !current)} aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}><ChevronLeft size={16} className={collapsed ? "rotate-180" : ""} /></button></div>
       <div className="console-org"><span>ON</span><div><strong>Oynk Network</strong><small>Operations workspace</small></div></div>
       <Navigation pathname={pathname} collapsed={collapsed} />
       <a className="console-docs-link" href="https://docs.oynk.io/docs"><BookOpen size={17} aria-hidden="true" /><span>Documentation</span></a>
     </aside>
 
-    {drawerOpen && <div className="console-drawer-backdrop" onMouseDown={() => setDrawerOpen(false)}><aside ref={drawerRef} className="console-drawer" onMouseDown={(event) => event.stopPropagation()} aria-label="Mobile console navigation"><div className="console-brand"><a href="/"><span>O</span><strong>Oynk</strong></a><button type="button" onClick={() => setDrawerOpen(false)} aria-label="Close navigation"><X size={19} /></button></div><div className="console-org"><span>ON</span><div><strong>Oynk Network</strong><small>Operations workspace</small></div></div><Navigation pathname={pathname} collapsed={false} onNavigate={() => setDrawerOpen(false)} /><a className="console-docs-link" href="https://docs.oynk.io/docs"><BookOpen size={17} /><span>Documentation</span></a></aside></div>}
+    {drawerOpen && <div className="console-drawer-backdrop" onMouseDown={() => setDrawerOpen(false)}><aside ref={drawerRef} className="console-drawer" onMouseDown={(event) => event.stopPropagation()} aria-label="Mobile console navigation"><div className="console-brand"><a href="/"><BrandMark /><strong>Oynk</strong></a><button type="button" onClick={() => setDrawerOpen(false)} aria-label="Close navigation"><X size={19} /></button></div><div className="console-org"><span>ON</span><div><strong>Oynk Network</strong><small>Operations workspace</small></div></div><Navigation pathname={pathname} collapsed={false} onNavigate={() => setDrawerOpen(false)} /><a className="console-docs-link" href="https://docs.oynk.io/docs"><BookOpen size={17} /><span>Documentation</span></a></aside></div>}
 
     <div className="console-workspace">
       <header className="console-topbar"><div className="flex items-center gap-3"><button ref={menuButtonRef} type="button" className="console-mobile-menu" onClick={() => setDrawerOpen(true)} aria-label="Open navigation" aria-expanded={drawerOpen}><Menu size={20} /></button><div className="console-breadcrumb"><a href="/dashboard">Oynk</a><span>/</span><strong>{title}</strong></div></div><div className="console-topbar-actions"><span className="console-environment"><i />{environment}</span><a href="https://docs.oynk.io/docs" aria-label="Open Oynk documentation"><Braces size={18} /></a></div></header>

@@ -1,0 +1,33 @@
+---
+title: "Indexing pipeline"
+description: "How Oynk schedules, indexes, stores, pairs, and reports blockchain activity."
+icon: "scan-search"
+---
+
+```mermaid
+flowchart TB
+  Trigger[Startup, schedule, CLI, or admin request] --> Guard[In-process guard]
+  Guard --> Lock[PostgreSQL advisory lock]
+  Lock --> Run[sync_runs: RUNNING]
+  Run --> BSC[BSC wallet × contract pairs]
+  Run --> SOL[Solana tracked wallets/sources]
+  BSC --> Transfer[(transfers)]
+  SOL --> Transfer
+  BSC --> Cursor[(sync_state)]
+  SOL --> Failure[(indexer_failures)]
+  Transfer --> Pair[Complementary-leg pairing]
+  Pair --> Final[sync_runs: COMPLETED/PARTIAL/FAILED]
+  Final --> Metrics[Dashboard aggregation]
+```
+
+## Coordination
+
+Synchronization begins on API startup when enabled, repeats on a configured interval, runs through `pnpm sync`, or starts asynchronously through the administrator endpoint. An in-process flag avoids duplicate local work; a fixed PostgreSQL advisory lock prevents concurrent processes from running the same global synchronization.
+
+Each run gets a UUID and durable timestamps, status, counts, errors, and successful/failed chains. A partial result is preserved instead of hiding a chain-specific failure.
+
+## Pairing
+
+The current matcher finds confirmed unpaired inflows, chooses an available confirmed outflow by same-asset preference, amount proximity, then time proximity, and writes a bidirectional pair inside one database transaction. The pair is marked heuristic and excluded from authoritative settled-volume reporting.
+
+Future payment records must propagate explicit references into each leg. Only `REFERENCE` pairs should establish business settlement.

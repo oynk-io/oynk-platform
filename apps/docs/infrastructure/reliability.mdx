@@ -1,0 +1,27 @@
+---
+title: "Reliability and observability"
+description: "Replay safety, checkpoints, failure records, health endpoints, scaling, and disaster recovery."
+icon: "heart-pulse"
+---
+
+## Implemented controls
+
+- Deterministic transfer identities and database uniqueness
+- BSC confirmation depth and reorg rewind
+- Contract-specific BSC checkpoints
+- Adaptive ranges with bounded retries
+- PostgreSQL advisory locking and in-process coordination
+- Durable synchronization runs and unresolved failure records
+- Partial-run reporting rather than all-or-nothing visibility
+- Liveness and database/configuration readiness endpoints
+- Graceful SIGINT/SIGTERM listener and pool shutdown
+
+## Required telemetry
+
+Production metrics should cover safe-tip and cursor lag, run duration and state, processed ranges/pages, insert/update counts, adaptive reductions, RPC latency/rate limits, failure backlog and age, repeated replay, database pool saturation, stale readiness, and dashboard query latency.
+
+Logs should include a run ID, chain, source, bounded range/page, attempt, and classified error. Never include RPC credentials, session/OTP tokens, private keys, signed payloads, or full compliance evidence.
+
+## Scaling and recovery
+
+Move scheduled indexing out of the API process and partition workers by chain/source under durable leases. Batch writes only after measuring correctness and query plans. Back up PostgreSQL with encryption and point-in-time recovery, define RPO/RTO, and test restoration. Derived chain data can be replayed from verified checkpoints, but an RPC provider is not a backup strategy.

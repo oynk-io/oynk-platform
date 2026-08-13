@@ -1,11 +1,12 @@
 import { ArrowLeft } from "lucide-react";
+import { BrandMark } from "../components/BrandMark";
 
 export function NotFoundPage() {
   return (
     <main className="landing-page grid min-h-screen place-items-center px-6 text-center">
       <div className="max-w-lg">
         <a href="/" className="wordmark justify-center" aria-label="Oynk home">
-          <span className="wordmark-mark" aria-hidden="true">O</span>
+          <BrandMark className="wordmark-mark" />
           <span>Oynk</span>
         </a>
         <p className="mt-12 text-sm font-semibold uppercase tracking-[0.2em] text-[#17735b]">Page not found</p>

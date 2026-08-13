@@ -31,7 +31,7 @@ export default function Router() {
     case "/":
       updateMetadata(
         "Oynk — Payment Infrastructure for Connected Economies",
-        "Oynk is building programmable payment and settlement infrastructure for cross-border transfers, everyday payments, merchant commerce, and qualified network partners.",
+        "Oynk is a programmable payment and settlement platform designed for fast-growing economies, connecting payment platforms, qualified liquidity providers, and local partners.",
         "#fafbf8"
       );
       return <LandingPage />;

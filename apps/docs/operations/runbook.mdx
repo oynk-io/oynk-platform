@@ -1,0 +1,58 @@
+---
+title: "Operations runbook"
+description: "Commands for migrations, synchronization, audits, targeted repairs, and validation."
+icon: "clipboard-list"
+---
+
+## Routine commands
+
+```bash
+docker compose up -d postgres
+pnpm db:migrate
+pnpm dev
+pnpm sync
+pnpm audit:bsc
+pnpm audit:solana
+```
+
+The API syncs on startup when `SYNC_ON_START=true` and schedules later runs. `pnpm sync` performs a one-time run and closes the database pool.
+
+## Targeted repair
+
+Inspect before changing a cursor:
+
+```bash
+pnpm sync:contract -- --chain BSC --wallet <wallet> --contract <address> --dry-run
+pnpm sync:contract -- --chain SOLANA --wallet <wallet> --contract <mint> --source-account <address> --dry-run
+```
+
+Only add `--reset` after verifying the chain, network, wallet, asset identity, replay boundary, and database backup. Resetting checkpoints can be expensive and can expose RPC limitations, although deterministic identities should prevent duplicate records.
+
+## API health and failures
+
+```bash
+curl http://localhost:4000/health/live
+curl http://localhost:4000/health/ready
+curl http://localhost:4000/api/sync/status
+curl http://localhost:4000/api/sync/failures
+```
+
+Run/failure endpoints reveal operational state and must be restricted at the deployment boundary. A production failure reprocessor is not implemented; never delete unresolved records to make monitoring appear healthy.
+
+## Manual sync
+
+```bash
+curl -X POST http://localhost:4000/api/dashboard/sync \
+  -H "x-admin-api-key: $OYNK_ADMIN_API_KEY"
+```
+
+The endpoint returns `202` with a run ID, `409` if work is already running, and `429` after excessive requests. Keep the admin key out of shell history and logs; the example variable name is intentionally not a repository configuration variable.
+
+## Release validation
+
+```bash
+pnpm typecheck
+pnpm test
+pnpm build
+git diff --check
+```

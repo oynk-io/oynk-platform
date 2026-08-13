@@ -1,0 +1,42 @@
+---
+title: "System design"
+description: "Oynk's monorepo, runtime services, package ownership, and target settlement architecture."
+icon: "boxes"
+---
+
+## Runtime topology
+
+```mermaid
+flowchart TB
+  Browser[Public web / operations console] --> API[Express API]
+  API --> Auth[Identity and compliance services]
+  API --> Dashboard[Dashboard aggregation]
+  API --> Sync[Sync coordinator]
+  Auth --> PG[(PostgreSQL)]
+  Dashboard --> PG
+  Sync --> Lock[PostgreSQL advisory lock]
+  Lock --> BSC[BSC indexer]
+  Lock --> SOL[Solana indexer]
+  BSC --> BRPC[BSC RPC]
+  SOL --> SRPC[Solana RPC]
+  BSC --> PG
+  SOL --> PG
+  Docs[Mintlify docs] -. documents .-> API
+  Future[Future control plane] -. invokes .-> Soroban[Future Soroban contracts]
+```
+
+## Package ownership
+
+| Workspace | Responsibility |
+| --- | --- |
+| `@oynk/shared` | Cross-package TypeScript contracts for dashboard, auth, organizations, and compliance |
+| `@oynk/api` | Input validation, authorization, identity, compliance, indexing, synchronization, aggregation, and PostgreSQL access |
+| `@oynk/web` | Public site and indexed-activity presentation |
+| `@oynk/console` | Account access and organization-specific operations experience |
+| `@oynk/docs` | Mintlify configuration and MDX documentation |
+
+Web packages do not import API internals. Shared contracts live in `@oynk/shared`; business logic remains server-side.
+
+## Deployment units
+
+The API, indexer worker, web applications, documentation, and database should deploy independently. The current API process schedules synchronization itself; production scale should move chain work to separately deployable workers using leases or partitions while retaining deterministic identities.

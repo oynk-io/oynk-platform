@@ -1,0 +1,32 @@
+---
+title: "Value and metric semantics"
+description: "How Oynk treats exact amounts and distinguishes movement from settlement."
+icon: "chart-no-axes-combined"
+---
+
+## Exact amounts
+
+Indexed token amounts retain the raw integer amount, token decimals, normalized decimal text, and USD estimate. PostgreSQL `NUMERIC` arithmetic is used when matching amounts. Future payment and settlement code must not use floating-point arithmetic for money.
+
+## Current valuation assumptions
+
+| Network | Asset | Operational USD price |
+| --- | --- | --- |
+| BSC | USDT | 1.00 |
+| BSC | USDC | 1.00 |
+| BSC | BTCB | 25,000.00 fixed estimate |
+| Solana | USDT | 1.00 |
+| Solana | USDC | 1.00 |
+
+<Warning>The BTCB value is a fixed reporting estimate, not a market price or historical valuation. Dashboard figures are operational indicators, not accounting statements.</Warning>
+
+## Dashboard metrics
+
+- **Gross transfer volume** sums observed confirmed transfer legs and recorded off-chain movement.
+- **Inflow/outflow** use wallet-relative direction.
+- **Estimated settled volume** counts reference-paired on-chain legs using the smaller leg value, plus off-chain transaction values.
+- **Unmatched volume** is observed movement not included in authoritative pairing.
+- **Settlement count** counts reference-paired settlements and off-chain records, not heuristic matches.
+- **Last indexed time** comes from synchronization runs, not the latest transaction timestamp.
+
+Heuristic pairing currently links unmatched inflows and outflows for investigation, with `pairing_method = HEURISTIC` and confidence `0.5000`. It is not authoritative settlement evidence.

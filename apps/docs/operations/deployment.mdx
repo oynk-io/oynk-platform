@@ -1,0 +1,41 @@
+---
+title: "Deployment"
+description: "A production topology for web, console, API, workers, PostgreSQL, RPC providers, and Mintlify."
+icon: "cloud"
+---
+
+## Recommended topology
+
+```mermaid
+flowchart LR
+  CDN[CDN / TLS] --> Web[Public web]
+  CDN --> Console[Operations console]
+  Mintlify[Mintlify] --> Docs[docs.oynk.io]
+  Proxy[API gateway / TLS] --> API[API instances]
+  Worker[Indexer workers] --> PG[(Managed PostgreSQL)]
+  API --> PG
+  Worker --> RPC1[BSC RPC pool]
+  Worker --> RPC2[Solana RPC pool]
+  Secrets[Secret manager] --> API
+  Secrets --> Worker
+  Monitor[Logs / metrics / alerts] --- API
+  Monitor --- Worker
+  Backup[Encrypted backups / PITR] --- PG
+```
+
+Run database migrations as a controlled release step. Use private database networking, separate API/worker credentials, health probes, non-root containers, resource limits, centralized logs, and tested backups. Put operational endpoints behind policy enforcement.
+
+## Mintlify deployment
+
+1. Connect the repository to Mintlify.
+2. Set the documentation directory to `apps/docs`.
+3. Select the production branch.
+4. Verify the preview build and all navigation.
+5. Add `docs.oynk.io` in Mintlify's custom-domain setup.
+6. Publish the DNS record exactly as Mintlify provides and verify TLS.
+
+The committed `docs.json`, MDX pages, logos, local validator, and relative OpenAPI source are ready for repository-driven deployment. No docs runtime secrets are required.
+
+## Future Stellar deployment
+
+Deploy Soroban contracts per environment only after audit gates. Record network, WASM hash, contract ID, admin/upgrade policy, deployment ledger, and source revision. Verify the deployed bytecode and configure indexers through environment-specific values before enabling any control-plane route.

@@ -1,0 +1,27 @@
+---
+title: "Accounts and access"
+description: "Implemented identity, organizations, sessions, OTP, roles, and platform modes."
+icon: "user-round-check"
+---
+
+Oynk separates users from organizations. A user can hold memberships, while each request operates in one active organization with a role and resolved permission set.
+
+## Organization types
+
+- `BUSINESS`: initiates payments and payouts and manages business operations.
+- `SETTLEMENT_PARTNER`: supplies liquidity or executes approved settlement legs.
+- `INTERNAL`: operates Oynk review, risk, support, payment, and technical functions.
+
+Organizations progress through explicit states such as email verification required, compliance incomplete, submitted, under review, approved, active, suspended, or closed. `SANDBOX`, `TEST`, and `LIVE` platform modes keep experimentation separate from production use.
+
+## Sign-in flow
+
+<Steps>
+  <Step title="Password verification">The server normalizes email and verifies a scrypt password hash.</Step>
+  <Step title="OTP challenge">A six-digit, expiring, attempt-limited challenge is delivered by the configured email provider.</Step>
+  <Step title="Session creation">The server stores only a keyed hash of the random session token and returns an HTTP-only cookie.</Step>
+  <Step title="Organization selection">The session binds an active organization and returns its role and permissions.</Step>
+  <Step title="CSRF enforcement">State-changing authenticated requests must present the separate CSRF token.</Step>
+</Steps>
+
+Sensitive values are not logged. Production rejects the development token pepper, development admin key, and development email provider.

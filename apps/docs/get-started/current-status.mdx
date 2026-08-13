@@ -1,0 +1,31 @@
+---
+title: "Current implementation status"
+description: "A precise boundary between implemented Oynk capabilities, partial foundations, and proposed Stellar/Soroban work."
+icon: "circle-check-big"
+---
+
+Oynk is an evolving platform. The repository contains working product foundations and a blockchain visibility plane, but not yet an end-to-end payment or Soroban settlement system.
+
+| Capability | Status | Evidence in this repository |
+| --- | --- | --- |
+| BSC indexing | Implemented | ERC-20 logs, confirmation depth, rewind, adaptive ranges, deterministic identities |
+| Solana indexing | Implemented with limitations | Parsed token balances and owner/source signatures; bounded deep history and Token-2022 coverage remain open |
+| Activity API and dashboard | Implemented | Aggregate metrics, timeline, recent transfers, chain filters, sync status |
+| Off-chain activity reporting | Implemented | Privacy-masked, seeded partner transaction records aggregated with on-chain activity |
+| Identity and sessions | Implemented foundation | Signup, email verification, password + OTP sign-in, session cookies, CSRF, roles, audit records |
+| Business compliance profile | Implemented draft flow | Authenticated read/save with validation, permissions, CSRF, and audit logging |
+| Business and partner workflows | Mostly informational | Role-specific shells exist; payment, payout, provider, and settlement APIs are not connected |
+| Payment orchestration | Proposed | No authoritative payment lifecycle, quote engine, route assignment, or payout connector |
+| Stellar integration | Proposed | No Stellar SDK dependency, Horizon/RPC client, asset configuration, or transaction submission |
+| Soroban contracts | Proposed | No Rust contract crate, WASM artifact, contract ID, deployment, or event indexer |
+| Smart accounts and passkeys | Proposed | Architecture only; no on-chain account implementation |
+
+<Note>
+  “Proposed” describes the intended design, not deployed behavior. Before launch, contract semantics, provider obligations, corridor policy, fees, authorization, upgrades, monitoring, and incident procedures all require explicit specifications.
+</Note>
+
+## Safe interpretation
+
+The dashboard reports observed movement around configured wallets. It does not prove that every transfer was authorized by Oynk, belongs to a customer payment, or reached a fiat recipient. Only an authoritative control-plane reference and verified completion evidence can establish a business settlement.
+
+See the [roadmap](/reference/roadmap) for the work required to move the proposed architecture into production.

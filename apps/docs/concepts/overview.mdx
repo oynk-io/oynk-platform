@@ -1,0 +1,30 @@
+---
+title: "How Oynk works"
+description: "A holistic view of Oynk's coordination, execution, settlement, and visibility layers."
+icon: "waypoints"
+---
+
+Oynk is designed as a coordination layer, not a single liquidity marketplace, bank, or wallet. It gives payment applications one lifecycle while allowing different qualified providers and rails to perform route-specific work.
+
+## The five layers
+
+<Steps>
+  <Step title="Experience layer">A payment application, checkout, terminal, or operations user initiates and observes work.</Step>
+  <Step title="Control plane">Oynk authenticates the actor, validates exact amounts and destinations, evaluates policy, requests quotes, assigns providers, and owns lifecycle state.</Step>
+  <Step title="Provider network">Qualified providers commit liquidity, collect origin funds, exchange value, or execute destination payouts under corridor and capacity constraints.</Step>
+  <Step title="Settlement layer">In the target architecture, Stellar assets and Soroban contracts create an auditable, reference-driven boundary for funding, commitments, claims, refunds, and disputes.</Step>
+  <Step title="Visibility plane">Indexers normalize chain events into PostgreSQL; APIs and dashboards expose operational movement, synchronization health, and reconciliation context.</Step>
+</Steps>
+
+## Separation of responsibilities
+
+| Layer | Authoritative for | Must not infer |
+| --- | --- | --- |
+| Payment application | Customer intent and user experience | Provider eligibility or chain finality |
+| Oynk control plane | Policy, quote acceptance, assignment, lifecycle, references | Fiat delivery without evidence |
+| Provider | Its committed execution leg and evidence | Whole-payment completion |
+| Soroban contract | On-chain state and authorized transitions | Off-chain identity or fiat facts not supplied under policy |
+| Indexer | What supported chain data shows | Authorization, ownership, or business completion |
+| Dashboard | Readable operational reporting | Legal settlement finality |
+
+This separation prevents a common failure mode: treating a token transfer as proof of a complete cross-border payment.

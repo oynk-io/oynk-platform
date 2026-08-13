@@ -1,0 +1,39 @@
+---
+title: "Configuration"
+description: "Environment variables for the API, applications, authentication, email, and indexers."
+icon: "settings-2"
+---
+
+Copy the root `.env.example` to `.env`. The API validates configuration at startup and loads package-local values before filling missing values from the monorepo root.
+
+## Core services
+
+| Variable | Purpose |
+| --- | --- |
+| `DATABASE_URL` | PostgreSQL connection string |
+| `API_PORT` | Express listen port, default `4000` |
+| `CORS_ORIGINS` | Comma-separated browser origins |
+| `APP_ENV` | `development`, `test`, or `production` |
+| `PLATFORM_MODE` | `SANDBOX`, `TEST`, or `LIVE` |
+| `PUBLIC_SITE_URL`, `CONSOLE_SITE_URL`, `API_PUBLIC_URL` | Canonical service URLs |
+
+## Chain indexing
+
+| Variable | Purpose |
+| --- | --- |
+| `BSC_RPC_URL`, `SOLANA_RPC_URL` | Network-specific RPC providers |
+| `SYNC_ON_START`, `SYNC_INTERVAL_MINUTES` | Scheduler behavior |
+| `BSC_START_BLOCK` | First-run historical boundary |
+| `BSC_INITIAL_CHUNK_SIZE`, `BSC_MIN_CHUNK_SIZE`, `BSC_MAX_CHUNK_SIZE` | Adaptive log ranges |
+| `BSC_CONFIRMATION_DEPTH`, `BSC_REORG_REWIND_BLOCKS` | Finality/replay policy |
+| `RPC_RETRY_ATTEMPTS` | Temporary RPC attempt limit |
+| `SOLANA_SIGNATURE_LIMIT` | Maximum signatures fetched per source scan |
+| `SOLANA_ADDITIONAL_SOURCE_ACCOUNTS` | Deployment-specific source addresses |
+
+## Security and email
+
+`ADMIN_API_KEY` and `AUTH_TOKEN_PEPPER` must contain at least 32 characters and must use non-development values in production. Session, pre-auth, password-reset, OTP expiry, attempt, and resend settings are independently configurable. Production must use `EMAIL_PROVIDER=zoho-smtp` with the required SMTP credentials; secrets belong in a secret manager, not source control.
+
+## Future Stellar/Soroban configuration
+
+When implemented, introduce validated variables for network/passphrase, RPC/Horizon providers, allowlisted asset issuer/contract identities, deployed contract IDs, fee/resource limits, and signer references. Update `.env.example` in the same change. Never reuse testnet configuration in mainnet.

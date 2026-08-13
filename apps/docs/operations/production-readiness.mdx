@@ -1,0 +1,34 @@
+---
+title: "Production readiness"
+description: "The minimum operational, security, payment, provider, and Soroban gates for production."
+icon: "list-checks"
+---
+
+## Current visibility plane
+
+- [ ] Complete bounded Solana history, source discovery, Token-2022 coverage, and retry processing.
+- [ ] Add redundant archival RPCs and measured failover.
+- [ ] Surface live chain lag and alert on stalled checkpoints/failure backlog.
+- [ ] Protect all operational run and failure endpoints with durable authorization.
+- [ ] Test migrations, duplicates, reorg replay, partial runs, recovery, and restoration against PostgreSQL.
+- [ ] Remove fixed-price reporting assumptions or label them appropriately for the production use case.
+
+## Payment and provider plane
+
+- [ ] Implement authoritative request, quote, assignment, evidence, payout, refund, dispute, and reconciliation records.
+- [ ] Enforce end-to-end idempotency and exact amount handling.
+- [ ] Integrate approved KYC/KYB, screening, corridor, limit, and case-management policy.
+- [ ] Complete provider due diligence, contracts, capacity tests, suspension, and exit procedures.
+- [ ] Establish licensing and legal eligibility for every launch corridor and service.
+- [ ] Rehearse incident ownership, customer communication, rollback, and reconciliation.
+
+## Stellar and Soroban
+
+- [ ] Freeze the network/asset model, state machine, auth graph, events, deadlines, and upgrade policy.
+- [ ] Implement contract, client, submitter, event indexer, and reconciliation paths.
+- [ ] Add invariant, property, fuzz, replay, migration, and adversarial integration tests.
+- [ ] Complete independent contract and application audits and close all critical/high findings.
+- [ ] Protect signing material with production key management and least privilege.
+- [ ] Pilot under narrow corridor, asset, provider, and exposure limits.
+
+<Warning>Do not expose customer or provider funds until the relevant checklist items have evidence, owners, and approval. A dashboard, testnet demo, or passing build is not a production authorization.</Warning>

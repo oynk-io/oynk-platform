@@ -1,0 +1,28 @@
+---
+title: "HTTP API overview"
+description: "Current public, authenticated, and operational API boundaries."
+icon: "braces"
+---
+
+The API is an Express service mounted under `/api`, with liveness and readiness at the root. The generated HTTP Reference tab uses `apps/api/openapi.yaml` for current dashboard, synchronization, and health endpoints.
+
+## Public activity
+
+`GET /api/dashboard?chain=ALL|BSC|SOLANA|OFFCHAIN` returns metrics, a 30-day timeline, and recent records. On-chain transfers include chain, wallet-relative direction, exact amount strings, USD estimate, status, explorer URL, and optional paired-leg context. Off-chain records mask sender, recipient, and account name.
+
+## Synchronization
+
+- `GET /api/dashboard/sync` and `GET /api/sync/status` return in-process state.
+- `POST /api/dashboard/sync` requires `x-admin-api-key`, is rate limited, and returns asynchronous run identity.
+- `GET /api/sync/runs`, `/api/sync/runs/{id}`, and `/api/sync/failures` expose operational persistence and should be restricted by deployment policy.
+
+## Health
+
+- `GET /health/live` confirms the process can answer HTTP.
+- `GET /health/ready` verifies startup configuration and a database query, returning `503` when unavailable.
+
+## Authenticated platform APIs
+
+Authentication routes cover business/partner signup, verification, password + OTP sign-in, sessions, organization selection, password reset, resend, and sign-out. Compliance routes expose an authenticated business profile read/save flow with permission and CSRF checks. These routes are implemented but are not yet included in the OpenAPI document; expanding that source specification is a remaining documentation task.
+
+There are no current payment, quote, payout, provider-assignment, Stellar, or Soroban HTTP endpoints.

@@ -1,0 +1,60 @@
+---
+title: "Quickstart"
+description: "Run the Oynk monorepo and Mintlify documentation locally."
+icon: "rocket"
+---
+
+## Prerequisites
+
+- Node.js 20.17 or newer
+- pnpm 10
+- Docker with Compose
+- A PostgreSQL-compatible local environment
+
+<Warning>Use pnpm only. Do not run npm, Yarn, or Bun commands in this workspace.</Warning>
+
+## Configure and start Oynk
+
+From the repository root:
+
+```bash
+cp .env.example .env
+docker compose up -d postgres
+pnpm install --frozen-lockfile
+pnpm db:migrate
+pnpm dev
+```
+
+The default local services are:
+
+| Service | URL |
+| --- | --- |
+| Public web app | `http://localhost:5173` |
+| Operations console | `http://localhost:5174` |
+| API | `http://localhost:4000` |
+
+The API can synchronize on startup and repeats at `SYNC_INTERVAL_MINUTES`. Public RPC endpoints may throttle historical reads; use reliable RPC providers for significant backfills.
+
+## Preview the documentation
+
+Install the current Mintlify `mint` CLI in your development environment, then run:
+
+```bash
+pnpm docs:dev
+```
+
+The docs preview uses `http://localhost:4173`. Validate navigation, frontmatter, assets, and local links without the CLI:
+
+```bash
+pnpm --filter @oynk/docs typecheck
+```
+
+## Validate the monorepo
+
+```bash
+pnpm typecheck
+pnpm test
+pnpm build
+```
+
+Do not claim production readiness from a successful local build. Review [production readiness](/operations/production-readiness) first.

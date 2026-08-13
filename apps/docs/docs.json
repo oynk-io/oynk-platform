@@ -1,0 +1,61 @@
+{
+  "$schema": "https://mintlify.com/docs.json",
+  "theme": "palm",
+  "name": "Oynk",
+  "description": "Oynk cross-border settlement architecture, product capabilities, blockchain indexing, and Stellar/Soroban roadmap.",
+  "colors": {
+    "primary": "#DB5D73",
+    "light": "#F08A9C",
+    "dark": "#A83E55"
+  },
+  "logo": {
+    "light": "/logo/light.svg",
+    "dark": "/logo/dark.svg",
+    "href": "https://oynk.io"
+  },
+  "favicon": "/logo/favicon.svg",
+  "appearance": { "default": "system" },
+  "icons": { "library": "lucide" },
+  "background": { "decoration": "gradient" },
+  "styling": { "eyebrows": "breadcrumbs", "codeblocks": "dark" },
+  "navbar": {
+    "links": [
+      { "label": "Activity dashboard", "href": "https://oynk.io/dashboard" },
+      { "label": "Operations console", "href": "https://console.oynk.io" }
+    ],
+    "primary": { "type": "button", "label": "Visit Oynk", "href": "https://oynk.io" }
+  },
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "icon": "book-open",
+        "groups": [
+          { "group": "Start here", "pages": ["index", "get-started/current-status", "get-started/quickstart", "get-started/glossary"] },
+          { "group": "How Oynk works", "pages": ["concepts/overview", "concepts/participants", "concepts/payment-lifecycle", "concepts/value-and-metrics"] },
+          { "group": "Architecture", "pages": ["architecture/system-design", "architecture/trust-boundaries", "architecture/data-model"] },
+          { "group": "Stellar & Soroban", "pages": ["stellar-soroban/overview", "stellar-soroban/settlement-contract", "stellar-soroban/smart-accounts", "stellar-soroban/asset-and-payment-model", "stellar-soroban/security"] },
+          { "group": "Platform", "pages": ["platform/accounts-and-access", "platform/compliance", "platform/provider-network", "platform/operations-console"] },
+          { "group": "Indexing & analytics", "pages": ["infrastructure/indexing", "infrastructure/bsc", "infrastructure/solana", "infrastructure/reliability"] },
+          { "group": "Operate Oynk", "pages": ["operations/configuration", "operations/runbook", "operations/deployment", "operations/production-readiness"] },
+          { "group": "Reference", "pages": ["reference/http-api", "reference/repository", "reference/roadmap"] }
+        ]
+      },
+      {
+        "tab": "HTTP Reference",
+        "icon": "square-terminal",
+        "openapi": "reference/openapi.yaml"
+      }
+    ]
+  },
+  "footer": {
+    "socials": { "website": "https://oynk.io" },
+    "links": [
+      { "header": "Product", "items": [{ "label": "Oynk", "href": "https://oynk.io" }, { "label": "Console", "href": "https://console.oynk.io" }] },
+      { "header": "Documentation", "items": [{ "label": "Architecture", "href": "/architecture/system-design" }, { "label": "Stellar & Soroban", "href": "/stellar-soroban/overview" }, { "label": "Operations", "href": "/operations/runbook" }] }
+    ]
+  },
+  "contextual": { "options": ["copy", "view", "chatgpt", "claude"] },
+  "api": { "playground": { "display": "none" } },
+  "seo": { "indexing": "all" }
+}

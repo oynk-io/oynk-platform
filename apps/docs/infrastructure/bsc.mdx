@@ -1,0 +1,29 @@
+---
+title: "BNB Smart Chain indexing"
+description: "ERC-20 log ingestion, confirmation depth, adaptive ranges, replay, and supported BSC assets."
+icon: "blocks"
+---
+
+## Inputs
+
+The BSC indexer scans configured tracked wallets against allowlisted token contracts:
+
+- USDT (`18` decimals, operational USD price `1`)
+- USDC (`18` decimals, operational USD price `1`)
+- BTCB (`18` decimals, fixed operational USD estimate `25,000`)
+
+Contract addresses are configured in the token service rather than inferred from symbols. RPC access is supplied through `BSC_RPC_URL`.
+
+## Safe range processing
+
+The indexer subtracts `BSC_CONFIRMATION_DEPTH` from the latest block to obtain a safe tip. On a subsequent run it rewinds by `BSC_REORG_REWIND_BLOCKS`, then scans forward. Deterministic transfer identities and upserts make replay safe.
+
+RPC providers frequently limit `eth_getLogs` ranges. Oynk starts with a configured chunk, retries temporary errors, reduces rejected ranges to a minimum, and grows the size after consecutive successes. Delays and jitter reduce burst pressure. Block timestamps are cached within the run.
+
+## Cursor identity
+
+Each cursor includes normalized wallet and contract address. This avoids collisions between assets and prevents a symbol rename from redirecting checkpoint state.
+
+## Operational repair
+
+Use the contract-specific sync script with `--dry-run` before resetting a cursor. A reset replays a bounded target and should be treated as a controlled repair, not routine operation.

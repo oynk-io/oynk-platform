@@ -1,0 +1,33 @@
+---
+title: "Soroban security and operations"
+description: "Threats, controls, audit gates, upgrade policy, and monitoring required before Oynk uses Soroban with funds."
+icon: "shield-alert"
+---
+
+## Primary threats
+
+| Threat | Required control |
+| --- | --- |
+| Unauthorized claim or refund | Explicit auth graph, least privilege, invariant tests, mutually exclusive terminal states |
+| Replay across action, contract, or network | Domain-separated payloads, nonces, network and contract binding |
+| Stale quote or deadline abuse | Ledger-time checks, bounded validity, revalidation before funding |
+| Asset substitution | Network-scoped allowlist using issuer/contract identity, never symbol-only matching |
+| Integer conversion error | Canonical precision rules, checked arithmetic, boundary/property tests |
+| Reentrancy or callback surprise | Minimal external calls, checks-effects discipline, adversarial contract tests |
+| Upgrade-key compromise | Multisignature governance, timelock where appropriate, published upgrade and rollback policy |
+| Privacy leakage | Store references/commitments only; exclude personal and bank data from events/state |
+| Indexer disagreement | Deterministic event identity, ledger checkpoints, replay, independent reconciliation |
+| RPC outage or censorship | Multiple providers, backoff, durable submissions, status recovery, alerting |
+
+## Launch gates
+
+<Steps>
+  <Step title="Specify">Freeze an explicit state machine, authorization matrix, storage/events, upgrade model, and emergency behavior.</Step>
+  <Step title="Prototype">Implement contracts and clients against a dedicated test network configuration with deterministic fixtures.</Step>
+  <Step title="Test">Add unit, property, fuzz, invariant, integration, replay, timeout, failure, and migration tests.</Step>
+  <Step title="Audit">Commission independent contract and application security reviews; close findings and retest.</Step>
+  <Step title="Pilot">Use capped assets, providers, corridors, and exposure with human monitoring and rehearsed rollback.</Step>
+  <Step title="Operate">Monitor contract events, ledger lag, authorization failures, fee anomalies, unresolved states, and control-plane divergence.</Step>
+</Steps>
+
+Contract IDs, issuer addresses, RPC URLs, signing material, and network passphrases belong in validated environment-specific configuration or a secret/configuration manager. Mainnet and testnet state must never share identifiers or databases without an explicit partition.

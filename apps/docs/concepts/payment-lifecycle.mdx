@@ -1,0 +1,43 @@
+---
+title: "Payment lifecycle"
+description: "The proposed end-to-end cross-border payment lifecycle and exception paths."
+icon: "route"
+---
+
+<Warning>This lifecycle is the target architecture. The current repository does not implement payment creation, quoting, provider assignment, Soroban funding, or payout execution APIs.</Warning>
+
+```mermaid
+sequenceDiagram
+  participant App as Payment application
+  participant O as Oynk control plane
+  participant C as Compliance policy
+  participant P1 as Origin/liquidity provider
+  participant S as Soroban settlement
+  participant P2 as Destination provider
+  App->>O: Create request + idempotency key
+  O->>C: Check parties, corridor, limits
+  O->>P1: Request eligible quote/capacity
+  O-->>App: Quote, fees, expiry
+  App->>O: Accept quote
+  O->>P1: Assign origin leg
+  P1->>S: Fund or commit settlement asset
+  S-->>O: Emit referenced state event
+  O->>P2: Make destination task available
+  P2->>O: Submit payout evidence
+  O->>S: Authorize claim under policy
+  O-->>App: Completed or exception
+```
+
+## Required state principles
+
+- Every create and accept operation is idempotent.
+- Money amounts use exact decimal or integer representations.
+- Quote expiry, fees, slippage, partial funding, and cancellation are explicit.
+- Compliance and corridor eligibility are rechecked at the policy-defined gates.
+- Provider assignment is a recorded commitment, not an informal side effect.
+- On-chain and provider events carry the same settlement reference.
+- Completion requires verified evidence for every required leg.
+
+## Exception paths
+
+Expired quotes require requoting. Underfunding requires an explicit top-up, accept-partial, refund, or cancel rule. Missed provider deadlines can move the request to reassignment, refund, or dispute. Contract claims and refunds must be mutually exclusive under a well-defined state machine.

@@ -1,0 +1,24 @@
+---
+title: "Compliance architecture"
+description: "Current business verification support and future corridor-specific compliance gates."
+icon: "badge-check"
+---
+
+## Implemented business profile
+
+Authenticated business members with `compliance:read` can load their organization profile. Members with `compliance:submit` can save a validated draft using a valid CSRF token. The API validates legal and registration details, ISO alpha-2 country codes, incorporation date, address, website, business description, expected volume/transaction strings, and source of funds.
+
+The save transaction updates the organization, upserts the compliance profile, and writes an audit event atomically. Document upload, beneficial-owner collection, screening integrations, submission/review decisions, and partner compliance profiles are not implemented.
+
+## Target policy gates
+
+Future payment authorization should evaluate:
+
+- KYC/KYB and beneficial ownership status
+- Sanctions and politically exposed person screening where required
+- Corridor, currency, asset, provider, and transaction eligibility
+- Per-payment and rolling amount/frequency limits
+- Source-of-funds and transaction-monitoring signals
+- Evidence retention, case management, and Travel Rule duties where applicable
+
+Decisions must be versioned and linked to a request without putting personal data on Stellar, Soroban, BSC, or Solana. Architecture documentation does not represent licensing or regulatory approval.

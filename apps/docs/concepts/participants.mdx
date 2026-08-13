@@ -1,0 +1,29 @@
+---
+title: "Participants and responsibilities"
+description: "The actors in an Oynk route and the trust placed in each one."
+icon: "users-round"
+---
+
+## Payment applications
+
+Applications originate authenticated payment requests, show quotes and expiry, collect acceptance, and present status. They should use idempotency keys and never invent completion locally.
+
+## Businesses and recipients
+
+Businesses fund or receive supported value through the application. Recipients receive the destination amount through a local payout method. Their personal data stays off public ledgers wherever possible.
+
+## Settlement and liquidity providers
+
+Providers operate within approved countries, currencies, assets, limits, and time windows. They may quote liquidity, accept assignments, perform collection or payout, and submit evidence. Participation is replaceable and subject to suspension.
+
+## Compliance providers and reviewers
+
+Identity, business, sanctions, and transaction screening services supply decisions to control-plane gates. Internal reviewers handle exceptions and additional-information requests. A screening provider does not authorize chain transfers.
+
+## Oynk operators
+
+Operators manage applications, exceptions, indexing health, and platform access under organization-scoped permissions. Administrative synchronization uses a separate API key today; future operations need finer-grained, audited authorization.
+
+## Networks and infrastructure
+
+Stellar validators, Soroban RPC services, BSC nodes, Solana nodes, PostgreSQL, email delivery, and local payment rails are external dependencies with distinct outage and trust characteristics.

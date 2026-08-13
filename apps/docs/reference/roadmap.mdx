@@ -1,0 +1,31 @@
+---
+title: "Roadmap"
+description: "Phased work from the current visibility plane to a production Oynk payment and Soroban settlement system."
+icon: "milestone"
+---
+
+## Phase 1 — Harden current foundations
+
+Complete Solana historical/retry coverage, add chain-lag telemetry, protect operations endpoints, improve integration fixtures, exercise backup restoration, and separate indexer workers from API serving.
+
+## Phase 2 — Specify Stellar and Soroban
+
+Choose networks/assets, define exact settlement and smart-account state machines, authorization, events, upgrade/recovery, data privacy, fee policy, and the control-plane/contract protocol. Produce threat models and test plans before implementation.
+
+## Phase 3 — Build a test environment
+
+Implement audited-style Rust contracts, TypeScript clients, signer/submitter boundaries, a Soroban event indexer, explicit settlement references, and reconciliation. Add deterministic fixtures and failure/replay testing.
+
+## Phase 4 — Add payment orchestration
+
+Implement idempotent requests, quotes/rate locks, eligibility, provider capacity and assignment, compliance decisions, fiat adapters, evidence, exceptions, refunds, and disputes. Connect existing console destinations only when real APIs and authorization exist.
+
+## Phase 5 — Controlled pilot
+
+Onboard qualified providers for a narrow corridor and asset set. Enforce low exposure limits, monitor every transition, reconcile independently, test incident procedures, and collect evidence before increasing scope.
+
+## Phase 6 — Production operations
+
+Require independent security review, production key management, redundant infrastructure, formal compliance approval, recovery drills, SLOs, alerts, on-call ownership, and governed contract upgrades.
+
+Research topics include bounded low-connectivity authorization, privacy-preserving payout evidence, cross-chain reference standards, and provider concentration/liquidity risk.
