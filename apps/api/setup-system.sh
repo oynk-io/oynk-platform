@@ -1,7 +1,7 @@
 #!/bin/bash
 
 SERVICE_NAME="onchain-dashboard-api"
-APP_DIR="/home/tinkerpal/onchain-dashboard/apps/api"
+APP_DIR="/home/tinkerpal/oynk-platform/apps/api"
 REPO_URL="git@github-oynktech:oynk-io/onchain-dashboard.git"
 DOCKER_COMPOSE_BIN="docker compose"
 SERVICE_FILE="/etc/systemd/system/${SERVICE_NAME}.service"
