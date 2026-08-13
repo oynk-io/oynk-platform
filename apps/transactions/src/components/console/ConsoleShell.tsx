@@ -32,7 +32,6 @@ export function ConsoleShell({ title, description, children, actions }: { title:
   const drawerRef = useRef<HTMLElement>(null);
   const menuButtonRef = useRef<HTMLButtonElement>(null);
   const pathname = window.location.pathname.replace(/\/$/, "") || "/";
-  const environment = import.meta.env.VITE_NETWORK_ENV?.trim() || "Mainnet";
   const publicSiteUrl = import.meta.env.VITE_PUBLIC_SITE_URL ?? "https://oynk.io";
 
   useEffect(() => { window.localStorage.setItem("oynk-console-collapsed", String(collapsed)); }, [collapsed]);
@@ -63,7 +62,7 @@ export function ConsoleShell({ title, description, children, actions }: { title:
     {drawerOpen && <div className="console-drawer-backdrop" onMouseDown={() => setDrawerOpen(false)}><aside ref={drawerRef} className="console-drawer" onMouseDown={(event) => event.stopPropagation()} aria-label="Mobile console navigation"><div className="console-brand"><a href={publicSiteUrl}><BrandMark /><strong>Oynk</strong></a><button type="button" onClick={() => setDrawerOpen(false)} aria-label="Close navigation"><X size={19} /></button></div><div className="console-org"><span>ON</span><div><strong>Oynk Network</strong><small>Operations workspace</small></div></div><Navigation pathname={pathname} collapsed={false} onNavigate={() => setDrawerOpen(false)} /><a className="console-docs-link" href="https://docs.oynk.io" target="_blank" rel="noopener noreferrer"><BookOpen size={17} /><span>Documentation</span></a></aside></div>}
 
     <div className="console-workspace">
-      <header className="console-topbar"><div className="flex items-center gap-3"><button ref={menuButtonRef} type="button" className="console-mobile-menu" onClick={() => setDrawerOpen(true)} aria-label="Open navigation" aria-expanded={drawerOpen}><Menu size={20} /></button><div className="console-breadcrumb"><a href="/">Oynk</a><span>/</span><strong>{title}</strong></div></div><div className="console-topbar-actions"><span className="console-environment"><i />{environment}</span><a href="https://docs.oynk.io" target="_blank" rel="noopener noreferrer" aria-label="Open Oynk documentation"><Braces size={18} /></a></div></header>
+      <header className="console-topbar"><div className="flex items-center gap-3"><button ref={menuButtonRef} type="button" className="console-mobile-menu" onClick={() => setDrawerOpen(true)} aria-label="Open navigation" aria-expanded={drawerOpen}><Menu size={20} /></button><div className="console-breadcrumb"><a href="/">Oynk</a><span>/</span><strong>{title}</strong></div></div><div className="console-topbar-actions"><a href="https://docs.oynk.io" target="_blank" rel="noopener noreferrer" aria-label="Open Oynk documentation"><Braces size={18} /></a></div></header>
       <main id="console-content" className="console-content"><header className="console-page-header"><div><h1>{title}</h1><p>{description}</p></div>{actions && <div className="console-page-actions">{actions}</div>}</header>{children}</main>
     </div>
   </div>;
