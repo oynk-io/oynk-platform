@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite --port 5174",
+    "prebuild": "pnpm --filter @oynk/shared build",
     "build": "tsc -b && vite build",
     "typecheck": "tsc -b --pretty false",
     "test": "tsx --test src/*.test.ts src/**/*.test.ts src/**/*.test.tsx",
