@@ -9,8 +9,8 @@ import {
 import { CHAIN_METADATA } from "./lib/chains";
 import { formatRelativeTime, formatUsd } from "./lib/format";
 import { MetricCard } from "./components/MetricCard";
+import { SettlementComposition } from "./components/SettlementComposition";
 import { TransferTable } from "./components/TransferTable";
-import { VolumeChart } from "./components/VolumeChart";
 import { ConsoleShell } from "./components/console/ConsoleShell";
 import { useDashboardData, type ChainFilter } from "./hooks/useDashboardData";
 
@@ -22,7 +22,7 @@ function DashboardSkeleton() {
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {Array.from({ length: 4 }, (_, index) => <div key={index} className="h-36 rounded-2xl border border-white/6 bg-white/[.035]" />)}
       </div>
-      <div className="mt-6 h-[370px] rounded-2xl border border-white/6 bg-white/[.035]" />
+      <div className="mt-6 h-[310px] rounded-2xl border border-white/6 bg-white/[.035]" />
       <div className="mt-6 h-80 rounded-2xl border border-white/6 bg-white/[.035]" />
     </div>
   );
@@ -64,16 +64,7 @@ export function DashboardPage() {
               <MetricCard label="Transactions" value={data.metrics.transferCount.toLocaleString()} sub="Onchain legs and offchain flows stored" icon={Database} />
             </div></section>
 
-            <dl className="console-detail-metrics" aria-label="Network activity details">
-              <div><dt>Tracked wallets</dt><dd>{(data.metrics.activeWallets ?? 0).toLocaleString()}</dd></div>
-              <div><dt>Onchain flow</dt><dd>{formatUsd(data.metrics.onchainVolumeUsd ?? data.metrics.totalUsd ?? 0)}</dd></div>
-              <div><dt>Offchain flow</dt><dd>{formatUsd(data.metrics.offchainVolumeUsd ?? 0)}</dd></div>
-              <div><dt>Settlement records</dt><dd>{(data.metrics.settlementCount ?? data.metrics.pairedTransferCount ?? 0).toLocaleString()}</dd></div>
-            </dl>
-
-            {chain !== "SOLANA" && chain !== "OFFCHAIN" && <div className="mt-4 rounded-xl border border-amber-300/20 bg-amber-300/8 p-4 text-sm text-amber-100">BTCB values use a fixed operational estimate of $25,000 per BTCB. They are not historical market prices.</div>}
-
-            <section className="mt-6 rounded-2xl border border-white/8 bg-white/[.035] p-4 sm:p-6" aria-labelledby="activity-heading"><div className="mb-3"><div className="flex flex-wrap items-center justify-between gap-3"><h2 id="activity-heading" className="font-semibold text-white">Cash flow</h2><span className="rounded-full border border-white/8 bg-black/10 px-2.5 py-1 text-xs text-slate-400">Last 365 days</span></div><p className="mt-1 text-sm text-slate-500">Total value moved with daily cash in and cash out</p></div><VolumeChart data={data.timeline} /></section>
+            <SettlementComposition metrics={data.metrics} />
 
             <section className="mt-7" aria-labelledby="transactions-heading"><div className="mb-4 flex items-end justify-between gap-4"><div><h2 id="transactions-heading" className="text-lg font-semibold text-white">Recent transactions</h2><p className="mt-1 text-sm text-slate-500">Onchain explorer evidence and privacy-safe offchain records.</p></div><a href="/transactions" className="secondary-button rounded-lg px-3 py-2 text-sm">View all loaded transactions</a></div><TransferTable rows={data.transfers.slice(0, 5)} compact /></section>
           </>
