@@ -2,6 +2,7 @@ import { pool } from "./pool.js";
 import { readFile, readdir } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { config } from "../config.js";
 import { seedOffchainTransactions } from "./seedOffchainTransactions.js";
 const sql = `
 CREATE TABLE IF NOT EXISTS tracked_wallets (
@@ -65,17 +66,23 @@ for (const migrationName of migrationNames) {
     client.release();
   }
 }
-const seedClient = await pool.connect();
 let offchainTransactionCount = 0;
-try {
-  await seedClient.query("BEGIN");
-  offchainTransactionCount = await seedOffchainTransactions(seedClient);
-  await seedClient.query("COMMIT");
-} catch (error) {
-  await seedClient.query("ROLLBACK");
-  throw error;
-} finally {
-  seedClient.release();
+if (config.SEED_OFFCHAIN_TRANSACTIONS) {
+  const seedClient = await pool.connect();
+  try {
+    await seedClient.query("BEGIN");
+    offchainTransactionCount = await seedOffchainTransactions(seedClient);
+    await seedClient.query("COMMIT");
+  } catch (error) {
+    await seedClient.query("ROLLBACK");
+    throw error;
+  } finally {
+    seedClient.release();
+  }
 }
-console.log(`Database migrations applied; ${offchainTransactionCount} offchain transactions seeded.`);
+console.log(
+  config.SEED_OFFCHAIN_TRANSACTIONS
+    ? `Database migrations applied; ${offchainTransactionCount} offchain transactions seeded.`
+    : "Database migrations applied; offchain transaction seed skipped.",
+);
 await pool.end();

@@ -95,6 +95,10 @@ const schema = z.object({
 		.enum(["true", "false"])
 		.default("true")
 		.transform((value) => value === "true"),
+	SEED_OFFCHAIN_TRANSACTIONS: z
+		.enum(["true", "false"])
+		.default("false")
+		.transform((value) => value === "true"),
 	APP_ENV: z.enum(["development", "test", "production"]).default("development"),
 	PLATFORM_MODE: z.enum(["SANDBOX", "TEST", "LIVE"]).default("SANDBOX"),
 	PUBLIC_SITE_URL: z.string().url().default("http://localhost:5173"),
@@ -168,6 +172,7 @@ console.info("[config]", {
 	solanaSignatureLimit: config.SOLANA_SIGNATURE_LIMIT,
 	syncIntervalMinutes: config.SYNC_INTERVAL_MINUTES,
 	syncOnStart: config.SYNC_ON_START,
+	seedOffchainTransactions: config.SEED_OFFCHAIN_TRANSACTIONS,
 	appEnvironment: config.APP_ENV,
 	platformMode: config.PLATFORM_MODE,
 	emailProvider: config.EMAIL_PROVIDER,
