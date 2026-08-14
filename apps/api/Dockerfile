@@ -13,7 +13,6 @@ RUN pnpm install --frozen-lockfile
 
 COPY packages/shared packages/shared
 COPY apps/api apps/api
-COPY updated-offchain-tx.csv ./
 
 RUN pnpm --filter @oynk/shared build
 RUN pnpm --filter @oynk/api build
@@ -26,7 +25,6 @@ ENV NODE_ENV=production
 WORKDIR /app
 
 COPY --from=build /out ./
-COPY --from=build /app/updated-offchain-tx.csv ./
 
 EXPOSE 4020
 
