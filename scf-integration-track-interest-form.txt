@@ -1,0 +1,268 @@
+OYNK — SCF INTEGRATION TRACK INTEREST FORM DRAFT
+
+Integration Track interest
+Yes
+
+Project name
+Oynk
+
+Website
+https://www.oynk.io/
+
+Product and traction page
+https://traction.oynk.io/
+
+Documentation
+https://docs.oynk.io/
+
+GitHub
+https://github.com/oynk-io
+
+Short description
+Oynk is building payment infrastructure for fast-growing economies. It connects fragmented payment ecosystems and underserved, high-frequency transactional surfaces through everyday payments, cross-border money movement, and savings-oriented financial experiences.
+
+One-sentence thesis
+Oynk turns underserved transactional surfaces into connected financial networks.
+
+What problem is Oynk solving?
+In markets such as Nigeria, a large share of economic activity takes place outside conventional merchant checkout flows. Transportation, informal commerce, small businesses, marketplaces, person-to-person payments, and savings groups each generate frequent transactions, but they are served by fragmented combinations of cash, bank transfers, wallets, card networks, foreign-exchange liquidity, and manual settlement relationships.
+
+Oynk is designed to provide connective infrastructure across these surfaces. The product direction is to make an everyday payment easy to collect, settle, store, save, transfer, and, when needed, move across borders. Instead of treating cross-border payments as a standalone remittance product, Oynk uses them as a high-value capability within a broader, recurring financial relationship.
+
+Who is the product for?
+- Payment platforms that need reusable payment and settlement infrastructure.
+- Small businesses and operators serving high-frequency economic activity.
+- Commercial mobility and transportation networks with repeated, low-value transactions.
+- Qualified liquidity and settlement providers operating across fragmented corridors.
+- Consumers who need simple everyday payments, value storage, savings, transfers, and cross-border access.
+
+What exists today?
+Oynk has a live product and technical foundation comprising identity and organization-access capabilities, an operational console foundation, PostgreSQL-backed settlement records, BNB Smart Chain and Solana transaction indexing, synchronization controls, aggregate activity APIs, public documentation, and a public settlement-activity dashboard.
+
+Oynk also has a settlement-contract MVP deployed on Stellar mainnet. The MVP implements three settlement directions—fiat-to-crypto, crypto-to-fiat, and fiat-to-fiat—and provides request creation, route validation, quote recording, source and destination settler assignment, token escrow, evidence-hash recording, claims, refunds, cancellation, disputes, dispute resolution, administrative updates, contract upgrades, persistent request state, and lifecycle events.
+
+The deployed contract is evidence that Oynk has already begun implementing and testing its settlement model on Stellar. It should still be described as an MVP rather than an audited or production-ready protocol. The funded work would harden this foundation and connect it to listed wallet and local-payment components so that settlement state corresponds to a complete, testable product flow.
+
+Oynk’s founder has facilitated approximately $2,000,000 USD in cross-border settlement activity using digital assets as the settlement mechanism for demand between the United States and Nigeria. This is founder-led operating experience and recorded activity; it is not represented as Oynk network volume, customer deposits, revenue, or proof that Oynk’s proposed Stellar functionality is already live.
+
+This experience exposed recurring problems involving fragmented liquidity, foreign-exchange pricing, manual coordination, payout fulfillment, delays, reconciliation, and transaction visibility. Oynk is converting those lessons into repeatable infrastructure.
+
+Why Stellar?
+Stellar is well suited to Oynk’s target workflow because it is designed for fast, low-cost asset movement and has an ecosystem of wallet, on/off-ramp, payment, and liquidity building blocks. Integrating those components would let Oynk connect frequent local payment activity to interoperable value storage and cross-border settlement without creating every part of the stack independently.
+
+Oynk’s public application repository now documents the deployed contract ID and explorer record, but its implementation packages do not contain the Soroban source, generated bindings, deployment manifest, or Stellar event indexer. The application must also link the verified source repository or commit and reproducible build evidence. The proposed work would integrate that existing MVP with a user-facing wallet and local-payment flow and develop a more robust contract version without presenting the MVP as fully production-ready.
+
+Existing Stellar mainnet MVP
+Deployment status: Deployed on Stellar mainnet
+Contract ID: CDTDCQ2Y6OASQVJGOFBA2EHP3AV7N6FFULJNEFGMORLYMNHECX7OO2W6
+Explorer URL: https://stellar.expert/explorer/public/contract/CDTDCQ2Y6OASQVJGOFBA2EHP3AV7N6FFULJNEFGMORLYMNHECX7OO2W6
+Source repository and commit: [ADD PUBLIC SOURCE URL AND IMMUTABLE COMMIT]
+WASM hash: 90ce6eb6…6973b1e8 (abbreviated by the supplied explorer activity; add the complete hash from the deployment record)
+Deployment transaction: 58eb6b55c774aeff2a54b90358fe459bf60f0089113b45caa6f697ef100d2fa0
+Deployment time: 2026-07-11 17:06:19 UTC
+Administrator and upgrade policy: [ADD CURRENT ADMIN, MANAGER, AND UPGRADE-CONTROL DETAILS]
+
+Verified mainnet activity supplied for the application
+- Request 1: fiat-to-crypto request created, quoted, accepted by a source settler, funded with 500 USDC, source settlement confirmed, and settlement asset claimed on 2026-07-11.
+- Request 2: fiat-to-crypto request created, quoted, accepted by a source settler, funded with 1,500 USDC, source settlement confirmed, and settlement asset claimed on 2026-07-11.
+- Request 3: fiat-to-fiat request created for route 840 to 414, quoted, accepted and funded by a source settler with 2,360 USDC, source settlement confirmed, accepted by a destination settler, destination settlement confirmed, and settlement asset claimed on 2026-07-12.
+- The three completed lifecycles represent 4,360 USDC of settlement principal using real USDC on Stellar mainnet. USDC uses seven decimal places in these calls, so the deposited integer amounts of 5,000,000,000, 15,000,000,000, and 23,600,000,000 normalize to 500, 1,500, and 2,360 USDC.
+- Settlement principal counts each request once. Counting both the escrow deposits and their later claims would show 8,720 USDC of gross contract token movement but would double-count the same settlement value.
+- These calls demonstrate execution of the MVP state machine with real funds on Stellar mainnet. They do not, by themselves, establish broad customer adoption, independently verified fiat payout finality, or an audited production launch.
+
+Current MVP capabilities
+- Settlement requests for fiat-to-crypto, crypto-to-fiat, and fiat-to-fiat routes.
+- Exact integer settlement amounts and a configured Stellar settlement asset.
+- Manager-issued quote terms committed through evidence hashes.
+- Separate source and destination settler assignments where required by the route.
+- Contract-held token deposits followed by an authorized claim or refund.
+- Hash commitments for quote, fiat, settlement, and dispute evidence without placing the underlying private evidence on-chain.
+- Cancellation before funding and dispute handling after funds are deposited.
+- Lifecycle events for creation, quotes, acceptance, deposits, confirmations, claims, refunds, cancellations, and dispute resolution.
+- Administrator-controlled manager changes and WASM upgrades.
+
+Why a more robust contract is needed
+The MVP establishes the lifecycle, but the production design should reduce privileged trust and make every asset movement and terminal state independently accountable. In particular, the next version should address:
+- Role separation and least privilege for administration, upgrades, quoting, settlement confirmation, pausing, and dispute resolution.
+- Multisignature or governed upgrade controls, an upgrade delay, explicit versioning, and an emergency pause that cannot silently alter settled requests.
+- Immutable per-request commercial terms after acceptance, including asset identity, exact amounts, fees, quote expiry, route, and authorized participants.
+- Per-request escrow accounting so pooled contract balances cannot conceal deficits and every residual amount has an explicit destination.
+- Explicit handling of partial payout, fees, unused escrow, refunds, expiration, and terminal-state replay protection.
+- A dispute record separate from ordinary settlement evidence, including opener, reason/evidence commitment, timestamps or ledgers, resolver, and resolution.
+- Narrow confirmation authority. An evidence hash proves only that bytes were committed; it does not independently prove that a fiat transfer occurred. Authorized attestations, provider references, and off-chain reconciliation remain necessary.
+- Storage TTL management, archival behavior, event schema versioning, bounded inputs, and migration compatibility.
+- Contract invariants and property-based tests covering conservation of escrowed value, authorization, legal state transitions, idempotency, deadlines, and claim/refund exclusivity.
+- Deterministic builds, generated client bindings, network-specific deployment manifests, source-to-WASM verification, monitoring, and event indexing.
+
+Official Integration List components that fit Oynk
+
+PRIMARY RECOMMENDATION
+
+1. Privy — embedded wallet and user onboarding
+Fit: Strong
+Why it fits: Oynk’s target users should not need to understand seed phrases or install a browser extension before making an everyday payment. Privy can provide embedded, email- or social-based accounts inside Oynk’s existing application. This supports a familiar onboarding experience while giving users a Stellar-capable account for receiving, holding, and transferring supported assets.
+Role in the proposed flow: User onboarding and wallet creation or connection; authenticated signing; account access within Oynk’s payment experience.
+
+2. Abroad — local instant-payment rail connectivity
+Fit: Strong, subject to confirmation of supported markets, currencies, commercial terms, and compliance requirements
+Why it fits: Abroad is described on the official Integration List as infrastructure connecting digital wallets with local instant-payment rails. This directly supports Oynk’s objective of connecting a Stellar wallet and settlement balance to everyday domestic payment and payout surfaces.
+Role in the proposed flow: Fiat collection or payout through supported local rails; conversion between local payment activity and the Stellar-based value flow; transaction-status and reconciliation integration.
+
+Recommended composition
+Privy + Abroad creates a coherent end-to-end integration: familiar account onboarding → embedded Stellar wallet → supported Stellar asset flow → local instant-payment collection or payout. This is a medium-sized proposal built from two focused integrations, with most of the budget assigned directly to implementing, securing, testing, and operating those integrations.
+
+OTHER OFFICIAL COMPONENTS THAT FIT, BUT SHOULD NOT ALL BE INCLUDED IN THE INITIAL SCOPE
+
+3. Bridge — multi-currency payments and treasury
+Fit: Strong alternative for cross-border business settlement, subject to corridor availability and onboarding eligibility
+Potential use: Moving value across business accounts and supported currencies while using Stellar for settlement. Bridge could replace Abroad in the initial proposal if its confirmed corridor coverage and business-settlement model are a better match.
+
+4. BlindPay — fiat and stablecoin payment infrastructure
+Fit: Strong alternative for global transfers, subject to supported countries, currencies, compliance requirements, and commercial access
+Potential use: Fiat and stablecoin pay-ins or payouts for Oynk’s cross-border flows. It should be evaluated against Abroad and Bridge rather than added merely to increase the number of integrations.
+
+5. MoneyGram — physical cash-in and cash-out
+Fit: Strong for cash-dependent transactional surfaces
+Potential use: Allowing eligible users to enter or exit a Stellar-based value flow through MoneyGram’s physical network. This is especially relevant where cash remains central, but it is better treated as a later distribution extension unless physical cash access is the first target use case.
+
+6. Stellar Wallets Kit — external wallet connectivity
+Fit: Strong technical complement or alternative to Privy
+Potential use: Connecting existing Stellar-compatible wallets to Oynk. This is most useful for ecosystem-native users and providers. Privy is the stronger initial choice for mainstream users; Stellar Wallets Kit is appropriate if the first release prioritizes existing Stellar wallet holders.
+
+7. Stellar Disbursement Platform (SDP) — bulk payments
+Fit: Moderate to strong for business disbursements
+Potential use: Payroll, merchant, driver, supplier, or other large-scale payment distributions. SDP becomes particularly relevant when Oynk has a defined bulk-disbursement customer and workflow.
+
+8. DeFindex — yield infrastructure
+Fit: Strong future fit for the savings layer, but not recommended for the first integration scope
+Potential use: Adding an explicitly consented, clearly disclosed savings or yield experience to balances held by eligible users. This requires separate product, risk, regulatory, asset, and user-protection decisions and should not be bundled into the first payment/on-ramp milestone.
+
+9. Blend v2 — lending pools
+Fit: Potential future fit, not an initial requirement
+Potential use: A later savings, liquidity, or credit capability for eligible users and providers. Lending risk and regulatory complexity make it unsuitable as connective tissue for the first payment integration.
+
+10. Aquarius, Soroswap, or Stellar Broker — liquidity and swap routing
+Fit: Potential future fit for asset conversion and route liquidity
+Potential use: Executing supported-asset swaps or improving liquidity access after Oynk has defined its assets, issuers, quote rules, slippage limits, and provider model. Only one routing approach should be selected after technical and commercial evaluation.
+
+11. Anchor Platform — anchor infrastructure
+Fit: Conditional
+Potential use: Appropriate only if Oynk decides to operate an anchor and has the legal, compliance, banking, operational, and liquidity capabilities required to do so. It should not be included merely as a software integration.
+
+What are we proposing to integrate?
+Oynk proposes an initial integration of Privy and Abroad.
+
+Privy would provide embedded wallet onboarding so that users can access a Stellar-enabled payment experience with familiar authentication. Abroad would connect the wallet-based value flow to supported local instant-payment rails. Oynk’s existing mainnet contract MVP demonstrates the intended escrow and settlement lifecycle. Oynk would provide the connective application and contract-hardening work: payment intent, exact amount handling, transaction references, safer escrow transitions, status tracking, idempotent processing, reconciliation, user-facing history, operational review, and privacy-safe activity reporting.
+
+The exact supported asset, issuer, country, currency, and transaction direction will be finalized only after technical, commercial, compliance, and corridor validation with the selected integration providers. Oynk will not present unsupported corridors or unconfirmed provider relationships as available.
+
+Initial user flow
+1. A user creates or accesses an embedded account through Privy within Oynk.
+2. Oynk creates a referenced payment intent with an exact amount, asset, destination, and expiry.
+3. The user funds or receives a supported Stellar asset through the approved flow.
+4. Abroad connects the corresponding fiat leg to a supported local instant-payment rail.
+5. Oynk tracks the on-chain and off-chain references, shows clear status, and reconciles the two legs without treating a token transfer alone as proof of completed fiat payout.
+6. The resulting transaction history is visible to the user and authorized operators, with sensitive data kept off-chain.
+
+How will these integrations improve Oynk?
+- They move Oynk from a visibility and operating-foundation product toward a testable end-to-end Stellar payment flow.
+- They reduce onboarding friction for users unfamiliar with crypto wallets.
+- They connect Stellar value movement to a real local payment surface instead of leaving assets isolated on-chain.
+- They let Oynk focus on payment intent, orchestration, reconciliation, operational visibility, and the experience of specific transaction surfaces.
+- They create a reusable foundation for merchant payments, mobility payments, transfers, and later cross-border or savings capabilities.
+
+Why are the integrations important to Oynk’s success?
+Oynk’s differentiation is not a new wallet, stablecoin, liquidity protocol, or on/off-ramp. Its value is connecting those building blocks into payment experiences for underserved, high-frequency economic activity. An embedded wallet without a local rail would be difficult for mainstream users to fund or exit. A local rail without a coherent wallet and ledger experience would reproduce the fragmented systems Oynk is intended to connect. The two integrations are therefore complementary and central to the proposed product outcome.
+
+How would this create value for the Stellar ecosystem?
+- Bring Stellar settlement into payment activity aimed at fast-growing, high-frequency markets.
+- Introduce users and businesses through a familiar embedded experience rather than requiring prior crypto knowledge.
+- Generate real payment and payout use cases for ecosystem on/off-ramp infrastructure.
+- Provide clear, reference-driven reconciliation between Stellar transactions and supported local payment legs.
+- Create a foundation that can later compose with Stellar disbursement, liquidity, and savings infrastructure.
+- Document integration patterns and measurable transaction outcomes that can help demonstrate where Stellar improves real payment workflows.
+
+Existing traction and evidence
+- Approximately $2,000,000 USD in founder-led cross-border activity facilitated between the United States and Nigeria using digital assets as the settlement mechanism.
+- A settlement-contract MVP deployed on Stellar mainnet at CDTDCQ2Y6OASQVJGOFBA2EHP3AV7N6FFULJNEFGMORLYMNHECX7OO2W6, with three completed request lifecycles representing 4,360 USDC of real settlement principal.
+- A live public product website, documentation site, operations-console foundation, and settlement-activity dashboard.
+- Working BNB Smart Chain and Solana indexing, synchronization, persistence, aggregation, and transaction-visibility capabilities.
+- Direct operating knowledge of liquidity fragmentation, FX pricing, payout coordination, delays, reconciliation, and transaction visibility.
+
+Important evidence boundary
+The founder-led activity validates the problem and the team’s operational experience. It must not be described as Oynk network volume, Oynk revenue, customer funds, or Stellar transaction volume. Any application claim about active users, businesses, revenue, signed partners, monthly transactions, or transportation adoption should be added only when supported by verifiable evidence.
+
+Why the Integration Track?
+Oynk is not proposing to build a new general-purpose wallet, on/off-ramp, DEX, or lending protocol. It is proposing to integrate existing Stellar ecosystem components into an existing application, mainnet contract MVP, and technical foundation. The work is primarily compositional: embed a supported wallet experience, connect it to a listed local-payment integration, and harden only the contract and application logic needed to make the combined flow safe, understandable, measurable, and useful for Oynk’s target transactional surfaces. Most of the requested budget should remain attributable to Privy and Abroad integration work; the contract work is connective tissue required to operate those integrations safely.
+
+Suggested scope
+Medium — two focused integrations
+
+Suggested request
+$75,000 USD worth of XLM
+
+This amount is a planning recommendation and should be revised after receiving implementation requirements and commercial estimates from Privy and Abroad. The final budget should allocate most costs to the two integrations and only necessary connective tissue. It should not include marketing or audit costs.
+
+Proposed three-tranche milestone structure
+
+Tranche 1 — Integration foundation and MVP — $20,000
+- Confirm provider onboarding, supported corridor, currency, asset, fee, limit, and compliance requirements.
+- Implement Privy test environment onboarding and embedded Stellar account flow.
+- Implement Abroad sandbox or test integration for one explicitly supported local payment direction.
+- Publish the existing mainnet MVP’s contract ID, explorer record, source commit, WASM hash, deployment transaction, current roles, and documented limitations.
+- Specify the hardened contract’s state machine, role model, escrow invariants, upgrade policy, evidence boundary, event schema, and compatibility plan.
+- Add shared, strictly typed payment and provider-status models.
+- Implement exact-amount payment intent, stable transaction references, idempotency, and safe failure states.
+- Deliver a recorded and reviewer-accessible end-to-end MVP demonstration.
+
+Verification: A reviewer can create an account, initiate the supported test flow, observe linked on-chain and off-chain references, and see a truthful pending, completed, or failed state.
+
+Tranche 2 — Testnet workflow and operational controls — $25,000
+- Complete the supported Stellar testnet transaction flow.
+- Deploy the hardened settlement-contract candidate to testnet with deterministic build evidence and generated client bindings.
+- Add per-request escrow accounting, safer role and upgrade controls, explicit expiry/refund behavior, versioned events, storage TTL handling, and invariant-focused tests.
+- Add webhook or polling verification with signature/authentication checks as supported by the providers.
+- Add retry safety, duplicate-event protection, reconciliation, error recovery, and operational status views.
+- Add transaction history and user-facing explanations of fees, timing, asset, and payment status.
+- Add automated unit and integration tests for success, timeout, duplicate, mismatch, and provider-failure cases.
+- Publish integration and operator documentation.
+
+Verification: Reviewers can test the documented flow and inspect evidence for idempotency, status reconciliation, failure handling, and transaction history.
+
+Tranche 3 — Mainnet launch for one validated flow — $30,000
+- Complete production onboarding with the selected providers.
+- Deploy and verify the hardened contract version on mainnet only after its security and operational release gates are satisfied; until then, do not expand the MVP beyond its explicitly controlled real-funds use.
+- Launch one narrowly defined, legally and commercially supported mainnet flow.
+- Add production monitoring, reconciliation alerts, support procedures, limits, and emergency-disable controls.
+- Publish user and operator documentation for the live flow.
+- Report launch metrics that distinguish users, initiated payments, completed payments, failed payments, volume, timing, and provider availability.
+
+Verification: Reviewers can access the production experience, verify mainnet transaction evidence, review published documentation, and inspect an anonymized launch-metrics report.
+
+Success measures
+- One production-supported payment direction using Stellar and a listed local-payment integration.
+- Embedded account onboarding completed without requiring a separate browser-extension wallet.
+- Every payment has an exact amount and stable reference linking its Stellar and local-payment states.
+- Duplicate requests and repeated provider events do not create duplicate payment execution.
+- Users receive clear pending, completed, failed, expired, and reversed/refunded states where supported.
+- Operations staff can identify and reconcile mismatched or delayed payment legs.
+- Mainnet results are reported without conflating founder-led history, indexed third-party activity, and new Oynk-facilitated transactions.
+
+Long-term direction after the funded integration
+The first integration establishes a reusable path from a familiar Oynk account to Stellar and a supported local payment rail. Oynk can then apply that foundation to high-frequency merchant or mobility transactions, business disbursements through SDP, additional cross-border providers, and—after separate risk and regulatory review—savings-oriented experiences through DeFindex or another appropriate Stellar component.
+
+Concise form response
+Yes. Oynk is interested in the SCF Integration Track. We propose integrating Privy for embedded Stellar wallet onboarding and Abroad for connectivity between digital wallets and supported local instant-payment rails. Oynk is building payment infrastructure for fast-growing economies, connecting underserved transactional surfaces—such as small businesses, commerce, and mobility—to everyday payments, cross-border money movement, and future savings experiences. Oynk already has a settlement-contract MVP deployed on Stellar mainnet, implementing request creation, quotes, settler assignment, token escrow, evidence commitments, claims, refunds, cancellations, disputes, resolutions, and lifecycle events across fiat-to-crypto, crypto-to-fiat, and fiat-to-fiat routes. Three completed mainnet lifecycles transacted real USDC and represent 4,360 USDC of settlement principal. Our broader product foundation includes identity and organization access, an operations console, settlement records, BSC and Solana indexing, synchronization controls, APIs, documentation, and a public activity dashboard. Oynk’s founder has also facilitated approximately $2,000,000 USD in cross-border activity between the United States and Nigeria using digital assets as the settlement mechanism; we identify this clearly as founder-led operating experience, not Oynk network volume. The proposed work would integrate the existing Stellar MVP with a usable wallet and local-payment flow, strengthen its privileged controls and escrow invariants, reduce onboarding friction, and connect Stellar value movement to a real payment rail. We recommend a focused medium scope of $75,000 across three verifiable milestones, subject to provider corridor, compliance, commercial, and contract-release confirmation.
+
+Pre-submission items to confirm
+- Add the public source commit, complete deployed WASM hash, deployment ledger, and current admin/manager addresses alongside the mainnet contract and deployment transaction already identified above.
+- Preserve evidence showing that the MVP held and released 4,360 USDC of real funds, while keeping this separate from claims of audited production readiness or independently verified fiat finality.
+- Obtain written confirmation from Privy and Abroad regarding technical access and current support for the intended Stellar asset, country, currency, and transaction direction.
+- Confirm which company entity will apply and which jurisdictions it can lawfully serve.
+- Add verifiable current product metrics if available: registered users, active users, businesses, completed Oynk transactions, revenue, pilots, signed letters, or usage retention.
+- Separate founder-led historical records from Oynk-facilitated production activity in every chart and application statement.
+- Replace the planning budget with estimates tied directly to provider integration work and measurable deliverables.
+- Confirm the current SCF tranche/payment instructions at submission time because the handbook and round requirements can change.
+
+Source checked for current component eligibility
+SCF Integration List: https://stellar.gitbook.io/scf-handbook/scf-awards/build-award/integration-track/integration-list

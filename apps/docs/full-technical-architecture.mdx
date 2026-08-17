@@ -1,6 +1,6 @@
 ---
 title: "Full technical architecture"
-description: "A consolidated technical review of Oynk's implemented web platform, blockchain visibility plane, and proposed Stellar/Soroban settlement architecture."
+description: "Stellar-specific integration architecture for Oynk's wallet access, Anchor on/off-ramp, Blend yield, and Soroban coordination and settlement flow."
 icon: "network"
 mode: "wide"
 ---
@@ -9,11 +9,13 @@ mode: "wide"
 
 **Architecture status:** Working architecture, August 2026.
 
-This document consolidates Oynk's complete technical architecture into one review surface. It covers the implemented monorepo, identity and compliance foundation, BSC and Solana visibility plane, data and API boundaries, operational controls, and the proposed Stellar and Soroban payment-settlement architecture.
+This document consolidates Oynk's complete technical architecture into one review surface. Its primary purpose is to specify the SCF Integration Track work: how Privy, Stellar Wallets Kit, Anchor Platform, Blend v2, Stellar USDC, and Oynk's Soroban coordination and settlement protocol combine into one commercial-payment lifecycle. It also covers the implemented monorepo, identity and compliance foundation, BSC and Solana visibility plane, the separately deployed Stellar mainnet settlement MVP, data and API boundaries, and operational controls.
 
 <Warning>
-  **Implementation boundary:** The repository currently implements identity, organization access, a business-compliance draft flow, BSC and Solana indexing, PostgreSQL persistence, synchronization controls, aggregate activity APIs, and web interfaces. It does not currently contain Stellar SDK integration, Soroban contracts, smart accounts, payment orchestration, quote routing, provider assignment, or fiat payout connectors. Those sections define the target architecture and required controls, not deployed behavior.
+  **Implementation boundary:** The repository currently implements identity, organization access, a business-compliance draft flow, BSC and Solana indexing, PostgreSQL persistence, synchronization controls, aggregate activity APIs, and web interfaces. A separate [Soroban settlement-contract MVP is deployed on Stellar mainnet](https://stellar.expert/explorer/public/contract/CDTDCQ2Y6OASQVJGOFBA2EHP3AV7N6FFULJNEFGMORLYMNHECX7OO2W6). This repository does not contain that contract's source, artifact, bindings, submitter, or event indexer, nor complete smart accounts, payment orchestration, quote routing, provider assignment, or fiat payout connectors. Target-architecture sections describe the hardening and integration still required.
 </Warning>
+
+The mainnet MVP completed three settlement lifecycles using real USDC. With seven token decimals, the deposited principals normalize to 500, 1,500, and 2,360 USDC, totaling **4,360 USDC of settlement principal**. This measure counts each request once rather than double-counting its escrow deposit and subsequent claim.
 
 ## 1. Executive summary
 
@@ -24,7 +26,7 @@ The architecture separates five concerns:
 1. **Experience:** public web, payment experiences, and organization-specific operations consoles.
 2. **Control plane:** identity, authorization, exact-value validation, compliance policy, quotes, provider selection, payment state, and authoritative references.
 3. **Provider plane:** qualified participants that supply liquidity, banking connectivity, collection, exchange, and destination payout.
-4. **Settlement plane:** the proposed Stellar asset rail and Soroban contracts governing funding, commitments, claims, refunds, and disputes.
+4. **Settlement plane:** the deployed Soroban MVP and its proposed hardened successor governing funding, commitments, claims, refunds, and disputes.
 5. **Visibility plane:** chain indexers, normalized PostgreSQL records, reconciliation, metrics, and operational dashboards.
 
 The design deliberately separates observed blockchain movement from verified business settlement. A chain transaction proves accepted ledger activity; it does not prove customer authorization, provider eligibility, fiat delivery, or end-to-end payment completion.
@@ -47,6 +49,180 @@ The design deliberately separates observed blockchain movement from verified bus
 Oynk does not replace local licensing, sanctions obligations, banking connectivity, provider due diligence, liquidity commitments, dispute operations, or legal analysis. A public dashboard is not a ledger of legally final customer payments. Soroban cannot independently establish an off-chain payout fact without evidence supplied through an authorized policy boundary.
 
 ## 3. System context
+
+### 3.1 SCF integration scope at a glance
+
+The grant-funded system is not a collection of unrelated integrations. Each building block owns a distinct boundary in the same payment flow.
+
+| Building block | Role in Oynk | Planned integration surface | System of record |
+| --- | --- | --- | --- |
+| **Privy** | Default embedded onboarding and Stellar account access for businesses that do not already use a Stellar wallet | Privy authentication and embedded-wallet SDK; wallet address linked to an approved Oynk organization | Privy for wallet/authentication material; Oynk for organization, role, eligibility, and payment records |
+| **Stellar Wallets Kit** | Optional external-wallet connection for settlement partners, liquidity providers, and businesses that prefer self-custody | Wallet discovery, connection, network selection, transaction signing, and reconnect handling | Connected wallet for keys/signatures; Oynk for permissions and workflow state |
+| **Anchor Platform** | Standardized on-ramp, off-ramp, and cross-border transaction interface | SEP-10 authentication, SEP-12 customer status, SEP-24 deposit/withdrawal, SEP-31 receive payments, and SEP-38 prices/firm quotes, connected through the Oynk business server | Anchor Platform for SEP workflow state; Oynk for compliance decisions, quotes, provider assignment, and fiat events |
+| **Blend v2** | Optional yield for a bounded share of an eligible business's deposit that is not reserved for an active rate lock | Supply and withdraw USDC from an allowlisted Blend pool; read position and pool state; reconcile principal and realized/accrued yield | Stellar/Blend for the aggregate on-chain position; Oynk's exact-value subledger for each business allocation |
+| **Soroban protocol** | Coordination, escrow, settlement state, claims, refunds, disputes, and auditable lifecycle events | Rust contract calls and versioned Soroban events using configured Stellar USDC | Soroban for on-chain settlement state; Oynk for the complete commercial-payment and fiat-leg state |
+
+<Info>
+  **Two wallet paths, one authorization boundary:** Privy is the default onboarding path. Stellar Wallets Kit is an alternative for a participant that already controls a compatible Stellar wallet. Selecting either path does not approve a participant or a payment; Oynk's server still applies organization permissions, KYC/KYB status, corridor policy, limits, and transaction-specific authorization.
+</Info>
+
+### 3.2 End-to-end integration flow
+
+```mermaid
+flowchart LR
+  B[Approved business] --> Choice{Wallet access}
+  Choice -->|Embedded onboarding| Privy[Privy embedded Stellar wallet]
+  Choice -->|Existing self-custody wallet| SWK[Stellar Wallets Kit]
+  Privy --> O[Oynk control plane]
+  SWK --> O
+  O --> AP[Anchor Platform]
+  AP <--> BS[Oynk Anchor business server]
+  BS --> K[Compliance and corridor policy]
+  BS --> Q[Liquidity, quote and rate-lock engine]
+  BS --> F[Regulated fiat collection / payout partner]
+  Q --> D[Business deposit subledger]
+  D --> R[Reserved amount: always liquid]
+  D --> X[Eligible excess amount]
+  X -->|Explicit opt-in and allocation cap| Blend[Blend v2 USDC pool]
+  Q --> S[Oynk Soroban protocol]
+  R -->|Stellar USDC funding| S
+  S -->|Versioned events| I[Soroban event indexer]
+  I --> Rec[Oynk reconciliation]
+  F -->|Authenticated fiat status and evidence| Rec
+  Rec --> O
+```
+
+The expected happy path is:
+
+1. **Onboard and connect.** The business authenticates through Privy and receives embedded Stellar access, or connects an existing wallet through Stellar Wallets Kit. The selected public address is bound to the participant's Oynk organization after a signed challenge and server-side authorization.
+2. **Establish eligibility.** Oynk collects or retrieves required customer information and makes the KYC/KYB, sanctions, wallet-risk, corridor, provider-type, and limit decisions. Anchor Platform's SEP-12 endpoint exposes the required fields and status, while the Oynk business server remains the decision-maker.
+3. **Request and lock a rate.** The business requests an indicative price or firm quote. Anchor Platform exposes the SEP-38 interface; Oynk's liquidity engine filters eligible providers, obtains capacity and pricing, calculates disclosed fees, and persists the accepted quote and expiry. Acceptance creates a time-bounded rate-lock obligation.
+4. **Collect origin value.** For a fiat on-ramp or off-ramp, Anchor Platform manages the standardized SEP-24 flow and receives authenticated updates from Oynk's business server as the regulated fiat partner reports collection or payout. SEP-31 is used where another anchor or sending institution initiates a cross-border receive-payment flow.
+5. **Account for the deposit.** Any business deposit is divided in Oynk's exact-value subledger into the amount reserved for active rate locks and the remaining liquid excess. Reserved funds cannot enter a yield strategy.
+6. **Apply optional Blend allocation.** An eligible business may explicitly opt in to allocate up to the configured percentage of only its excess USDC balance to an allowlisted Blend v2 pool. The initial policy target is at most 50% of eligible excess, subject to a lower corridor, business, pool, or aggregate cap. Oynk never allocates the reserve needed to honor a rate lock.
+7. **Coordinate and settle.** Oynk creates a referenced Soroban settlement containing the exact asset, amount, authorized parties, deadlines, route commitment, and policy version. Stellar USDC funds the contract. Authorized transitions enable claim, refund, cancellation, or dispute resolution without placing personal or bank information on-chain.
+8. **Observe and reconcile.** The Soroban indexer consumes versioned contract events. Oynk correlates them with Anchor Platform transaction IDs, fiat-provider references, wallet addresses, payment legs, and internal ledger entries. A payment becomes complete only when every required on-chain and off-chain leg satisfies its completion rule.
+
+### 3.3 Privy embedded-wallet integration
+
+Privy is the primary access path for general business onboarding. Oynk will use it to create or recover an embedded wallet experience behind familiar authentication, then associate the resulting Stellar address with an Oynk organization and user membership.
+
+The integration will implement:
+
+- Privy session verification on the server before trusting a wallet association;
+- Stellar account creation or access in the supported Privy configuration;
+- signed wallet-linking challenges with nonce, expiry, intended organization, and network;
+- explicit transaction previews for asset, amount, destination/contract, network, fee, and expiry;
+- reauthentication or step-up controls for sensitive signing actions;
+- account recovery, wallet unlinking, compromised-session response, and audit events; and
+- testnet/mainnet configuration separation.
+
+Privy does not make compliance, payment, quote, or settlement decisions. It supplies the embedded access and signing boundary; Oynk supplies business authorization and transaction policy.
+
+**Completion test:** A newly approved test business can authenticate, obtain or access a Stellar-capable embedded wallet, link it to the correct organization, review and authorize a testnet transaction, reconnect safely, and view the resulting payment reference without exposing private key material to Oynk.
+
+### 3.4 Stellar Wallets Kit integration
+
+Stellar Wallets Kit is the alternative access path for settlement partners, liquidity providers, and businesses that prefer an existing external Stellar wallet. Oynk will use the kit's supported-wallet connection and signing interfaces instead of implementing wallet-specific adapters.
+
+The integration will implement:
+
+- supported-wallet discovery and connection;
+- a signed, expiring challenge to prove control of the selected account;
+- network/passphrase checks before any signature request;
+- transaction-envelope presentation and user authorization;
+- rejection, disconnect, account-change, and reconnect handling;
+- mapping of an approved address to provider and corridor permissions; and
+- server-side verification that the submitted transaction matches the immutable payment instruction.
+
+A connected wallet is not automatically an eligible settler. Oynk separately verifies the provider, organization, account allowlist, corridor, amount, asset, and assigned settlement role.
+
+**Completion test:** An approved provider connects a supported testnet wallet, proves address control, receives a transaction built for its assigned settlement, signs or rejects it, and Oynk records the result idempotently. A wrong-network, wrong-account, altered-envelope, expired-challenge, or unapproved-provider attempt is rejected.
+
+### 3.5 Anchor Platform on-ramp and off-ramp integration
+
+Oynk intends to use Anchor Platform as the standardized Stellar-facing boundary for on-ramp, off-ramp, and cross-border flows. Anchor Platform will be deployed with private access to the Oynk business server; it will not connect directly to internal databases or independently approve customers.
+
+| SEP | Use in Oynk | Oynk-owned behavior |
+| --- | --- | --- |
+| **SEP-10** | Authenticate a Stellar account for an Anchor transaction | Bind the authenticated account to the correct organization, environment, and permitted role |
+| **SEP-12** | Request required KYC/KYB fields and expose customer status | Collect/validate through approved compliance services; return `NEEDS_INFO`, processing, accepted, or rejected status without placing identity data on-chain |
+| **SEP-24** | Interactive fiat deposit and withdrawal experience | Create payment instructions, disclose fees/timing, select the regulated fiat adapter, and report authenticated off-chain status changes |
+| **SEP-31** | Receive a cross-border payment initiated by another institution/anchor | Validate sender/receiver requirements, bind the transaction to the Oynk payment and provider assignment, and coordinate destination payout |
+| **SEP-38** | Indicative rates and firm, expiring quotes | Source eligible provider liquidity, calculate exact amounts and disclosed fees, persist quote terms, enforce expiry, and create the rate-lock reserve |
+
+The business server will expose only the callbacks and private APIs Anchor Platform requires. Requests will be authenticated, schema-validated, idempotent, correlated to stable Oynk references, and recorded in an audit trail. Fiat-provider webhooks remain untrusted until signature verification, replay protection, status-transition validation, and reconciliation succeed.
+
+Anchor status is not by itself proof of fiat finality. Oynk records the Anchor transaction ID, external fiat reference, provider evidence, Stellar transaction hash, Soroban settlement ID, and reconciliation state as separate fields.
+
+**Completion test:** A reviewer can authenticate, satisfy a test SEP-12 customer flow, obtain and accept a SEP-38 firm quote, start a SEP-24 deposit or withdrawal or a documented SEP-31 receive flow, observe authenticated fiat-status updates, and trace the same stable reference into Soroban funding and reconciliation. Duplicate callbacks do not duplicate value or advance an invalid state.
+
+### 3.6 Blend v2 opt-in yield integration
+
+Blend is not the source of rate-lock liquidity and is not permitted to hold funds needed for settlement. It is an optional capital-efficiency feature for eligible excess business deposits.
+
+For each business, Oynk's exact-value subledger will maintain:
+
+- `RESERVED`: immediately available USDC required for accepted rate locks;
+- `LIQUID`: USDC not currently reserved or supplied to Blend;
+- `YIELD_PENDING`: opted-in excess awaiting a permitted supply/withdraw transaction; and
+- `YIELD_DEPLOYED`: principal represented by the business's share of the reconciled Blend position.
+
+The allocation precondition is:
+
+```text
+eligible_excess = max(0, deposit_balance - active_rate_lock_reserve - pending_withdrawals)
+blend_allocation <= min(business_cap, corridor_cap, pool_cap, aggregate_cap, eligible_excess * opt_in_percentage)
+```
+
+The proposed initial `opt_in_percentage` ceiling is 50%, but policy may set it lower. Oynk will allowlist the pool and asset contract, verify network and contract identifiers, read pool liquidity and position state, record transaction hashes and ledger numbers, and reconcile aggregate on-chain balances back to per-business principal, yield, loss, fees, and withdrawals.
+
+The funded scope will not borrow, use leverage, enter a backstop module, promise a return, guarantee principal, or automatically opt a business in. A liquidity shortfall, pool/configuration anomaly, oracle-health breach, reconciliation variance, or emergency state disables new allocations and can initiate controlled withdrawals without consuming rate-lock reserves.
+
+**Completion test:** An eligible test business explicitly opts in, allocates only permitted excess test USDC, sees its subledger and Blend position reconcile, requests withdrawal, and opts out. Attempts to allocate reserved funds, exceed any cap, use a non-allowlisted pool, or act without consent fail before submission.
+
+### 3.7 Soroban coordination and settlement protocol
+
+Soroban is the final coordination and value-settlement layer in the flow. Oynk will harden the existing mainnet MVP into a contract suite and supporting submitter/indexer that can represent payment requests, eligible provider participation, firm quote commitments, escrow funding, deadlines, claim authorization, refunds, disputes, reconciliation references, and terminal completion.
+
+The control plane will keep customer identity, bank instructions, compliance evidence, provider pricing detail, and raw payout evidence off-chain. The contract receives only the minimum non-personal reference, exact network-scoped asset and amount, authorized addresses, deadlines, policy/route commitment, and permitted transition.
+
+Every contract method will verify Soroban authorization, current state, asset allowlist, exact amount, deadline, and replay/idempotency condition. Claim and refund are mutually exclusive terminal outcomes. Privileged actions—including pause, dispute resolution, migration, and upgrade—will use documented role separation and auditable governance rather than a single implicit application key.
+
+**Completion test:** A testnet lifecycle proceeds from request and quote commitment through exact USDC funding, claim enablement, claim, event indexing, and reconciliation. Separate fixtures prove expiry/refund, cancellation-before-funding, dispute resolution, duplicate submission, unauthorized signer, wrong asset/amount, paused contract, and indexer replay behavior. The final milestone executes one narrowly scoped approved mainnet flow after release gates are satisfied.
+
+### 3.8 Cross-integration identifiers and state ownership
+
+One `payment_id` ties the integrations together, but Oynk preserves each system's native identity instead of treating similar amounts or timestamps as correlation.
+
+| Reference | Purpose |
+| --- | --- |
+| `payment_id` | Stable Oynk commercial-payment identity and idempotency scope |
+| `organization_id` / `wallet_binding_id` | Approved participant and selected Privy or external-wallet authorization |
+| `anchor_transaction_id` / `anchor_quote_id` | SEP workflow and firm quote |
+| `provider_assignment_id` / `fiat_reference` | Qualified provider obligation and regulated-rail event |
+| `rate_lock_id` / `reserve_entry_id` | Accepted commercial terms and exact reserved balance |
+| `blend_allocation_id` / Blend transaction hash | Optional consent, subledger allocation, and on-chain position movement |
+| `settlement_id` / Soroban transaction hash | Contract lifecycle and Stellar USDC movement |
+| `reconciliation_id` | Comparison and disposition of all required legs |
+
+The commercial payment state lives in Oynk. Anchor Platform owns standardized protocol workflow state. Privy or the connected wallet owns signing authority. Blend owns the aggregate lending-pool position. Soroban owns settlement escrow and transition state. A successful result in any one component cannot independently mark the overall payment complete.
+
+### 3.9 Integration security and production gates
+
+Before a mainnet corridor is enabled, Oynk requires:
+
+- confirmed provider support for the intended country, currency, direction, limits, Stellar network, and USDC asset;
+- applicable Oynk authorization and/or a documented regulated-bank, PSP, anchor, or payout-partner arrangement;
+- production KYC/KYB, sanctions, wallet-risk, transaction-monitoring, case, and audit integrations;
+- independent Soroban security review and resolved release-blocking findings;
+- tested secrets management, signer separation, contract governance, pause, recovery, and rollback procedures;
+- Anchor callback authentication, idempotency, replay protection, and fiat reconciliation;
+- Privy and external-wallet recovery/compromise procedures;
+- Blend pool allowlisting, allocation caps, consent records, liquidity/risk monitoring, reconciliation, and emergency withdrawal controls; and
+- on-chain monitoring for contract events, balances, failed or stuck transactions, indexing lag, reserve deficits, unauthorized changes, and reconciliation variance.
+
+Production activation is corridor-specific. Completing the technical integration does not assert that Oynk or every liquidity participant is licensed for every jurisdiction or transaction type.
 
 ```mermaid
 flowchart LR
@@ -556,8 +732,8 @@ Derived blockchain data can be rebuilt from verified checkpoints and bounded bac
 
 ## 26. Current limitations
 
-- No Stellar client, Horizon/RPC integration, asset configuration, or transaction submission exists.
-- No Soroban Rust contract, WASM artifact, deployment, contract ID, event indexer, or audit exists.
+- No Stellar client, Horizon/RPC integration, asset configuration, transaction submitter, or event indexer exists in this repository.
+- A Soroban MVP is deployed at `CDTDCQ2Y6OASQVJGOFBA2EHP3AV7N6FFULJNEFGMORLYMNHECX7OO2W6`, but its Rust source, complete WASM artifact, generated bindings, deployment manifest, and independent security review are not present here.
 - No authoritative payment, quote, provider-assignment, payout, refund, or dispute lifecycle exists.
 - Compliance supports a business draft foundation, not complete screening or review operations.
 - Solana historical pagination, retry processing, Token-2022, and source coverage are incomplete.
@@ -569,8 +745,8 @@ Derived blockchain data can be rebuilt from verified checkpoints and bounded bac
 ## 27. Delivery phases
 
 1. **Harden current foundations:** complete Solana coverage and retries, chain-lag telemetry, operator access, test fixtures, worker separation, and recovery drills.
-2. **Specify Stellar/Soroban:** freeze asset identity, state machines, authorization, events, upgrades, privacy, fee policy, and threat model.
-3. **Build test environment:** implement contracts, clients, signer/submitter, event indexer, explicit references, and reconciliation.
+2. **Specify and harden Stellar/Soroban:** use the mainnet MVP as evidence while freezing asset identity, state machines, authorization, events, upgrades, privacy, fee policy, and threat model for its successor.
+3. **Build test environment:** implement the hardened contract, clients, signer/submitter, event indexer, explicit references, and reconciliation.
 4. **Implement payment orchestration:** add requests, rate locks, provider capacity/assignment, compliance gates, fiat adapters, evidence, refunds, disputes, and full APIs.
 5. **Conduct security review:** execute property/fuzz/integration testing and independent contract/application audits.
 6. **Run controlled pilot:** restrict providers, corridors, assets, amounts, and exposure with human monitoring and independent reconciliation.
@@ -610,4 +786,4 @@ Derived blockchain data can be rebuilt from verified checkpoints and bounded bac
 
 Oynk's core architectural principle is separation of authority. Applications express intent; the control plane owns policy and lifecycle; providers execute bounded legs; Soroban is intended to enforce narrowly defined on-chain settlement transitions; indexers report ledger facts; and reconciliation determines whether all referenced obligations agree.
 
-The current repository provides meaningful identity, compliance, observability, indexing, and presentation foundations, but it is not yet an end-to-end Stellar/Soroban payment platform. Moving funds safely requires implementing the missing control plane and contract layers, preserving exactness and replay safety, proving authorization invariants, independently auditing the system, and launching within narrow operational and regulatory limits.
+The current repository provides meaningful identity, compliance, observability, indexing, and presentation foundations, and the separate mainnet MVP proves execution of the initial Soroban settlement lifecycle. Oynk is not yet an end-to-end, audited Stellar payment platform. Moving production funds safely requires integrating and hardening the contract and control-plane layers, preserving exactness and replay safety, proving authorization invariants, independently reviewing the system, and launching within narrow operational and regulatory limits.

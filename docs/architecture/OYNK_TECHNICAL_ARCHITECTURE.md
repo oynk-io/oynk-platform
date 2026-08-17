@@ -1,10 +1,10 @@
 # Oynk technical architecture
 
-Status: working architecture, August 2026. This document separates implemented dashboard/indexing capabilities from proposed payment and Soroban capabilities.
+Status: working architecture, August 2026. This document separates implemented dashboard/indexing capabilities, a separately deployed Soroban MVP, and the proposed hardened payment architecture.
 
 ## 1. Executive summary
 
-Oynk is intended to coordinate cross-border payment applications, qualified liquidity providers, and local settlement providers through a common settlement layer. The repository currently implements the visibility plane: BSC and Solana transfer indexing, PostgreSQL storage, synchronization operations, and a public activity dashboard. Payment orchestration, Soroban settlement contracts, smart accounts, provider assignment, compliance integrations, and fiat payout connectors are proposed architecture unless separately evidenced by deployed code.
+Oynk is intended to coordinate cross-border payment applications, qualified liquidity providers, and local settlement providers through a common settlement layer. The repository currently implements the visibility plane: BSC and Solana transfer indexing, PostgreSQL storage, synchronization operations, and a public activity dashboard. A separate settlement-contract MVP is deployed on Stellar mainnet at [`CDTDCQ2Y6OASQVJGOFBA2EHP3AV7N6FFULJNEFGMORLYMNHECX7OO2W6`](https://stellar.expert/explorer/public/contract/CDTDCQ2Y6OASQVJGOFBA2EHP3AV7N6FFULJNEFGMORLYMNHECX7OO2W6). Payment orchestration, application-side Stellar integration, smart accounts, provider assignment, compliance integrations, fiat payout connectors, and contract hardening remain proposed unless separately evidenced.
 
 ## 2. System goals
 
@@ -55,7 +55,7 @@ Planned smart accounts may combine passkeys, Stellar G-account authorization, EV
 
 ## 9. Settlement-contract layer
 
-The proposed Soroban layer records settlement requests, route/provider commitments, escrowed assets, deadlines, evidence hashes, claims, cancellation, refunds, and disputes. Contracts should minimize stored personal data and emit stable identifiers for indexing. This repository does not currently contain those contracts; their state transitions require separate specification, audit, and deployment evidence.
+The deployed Soroban MVP records settlement requests, routes, settler assignments, escrowed settlement assets, deadlines, evidence hashes, claims, cancellations, refunds, and disputes. Explorer activity shows three requests reaching an on-chain claim: two fiat-to-crypto flows and one fiat-to-fiat flow. Using USDC's seven decimals, their escrow principals normalize to 500, 1,500, and 2,360 USDC, totaling 4,360 USDC of real settlement principal. This repository does not currently contain the MVP's Rust source, full WASM artifact, generated bindings, deployment manifest, or event indexer. A hardened version still requires explicit specifications, invariant and adversarial testing, independent security review, reproducible deployment evidence, and controlled production release gates.
 
 ## 10. Provider network
 
@@ -168,7 +168,7 @@ Unit-test normalization, cursor keys, range adaptation, rewind, deterministic id
 
 ## 26. Current limitations
 
-- No Soroban contracts, payment orchestration, smart-account implementation, provider registry, or compliance adapters are present in this repository.
+- A Soroban settlement MVP exists on mainnet but its source, bindings, submitter, and event indexer are not present in this repository; payment orchestration, smart accounts, provider registry, and compliance adapters also remain absent here.
 - Solana historical pagination/retry execution and Token-2022/source coverage are incomplete.
 - Chain lag is not yet surfaced from live safe tips.
 - Heuristic legacy pairing is not authoritative.
@@ -177,7 +177,7 @@ Unit-test normalization, cursor keys, range adaptation, rewind, deterministic id
 ## 27. Milestones
 
 1. Complete and test indexer reliability and operator controls.
-2. Specify and audit Soroban settlement and smart-account contracts.
+2. Specify, harden, independently review, and reproducibly deploy the next Soroban settlement contract; specify smart accounts separately.
 3. Implement authenticated control-plane lifecycle, references, compliance gates, and provider sandbox.
 4. Pilot limited corridors with qualified providers and explicit operational limits.
 5. Add independent security review, recovery drills, monitoring, and controlled production rollout.
@@ -216,4 +216,3 @@ sequenceDiagram
   O->>S: Authorize claim under policy
   O-->>App: Completion or exception status
 ```
-

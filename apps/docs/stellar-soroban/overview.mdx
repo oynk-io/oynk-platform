@@ -5,8 +5,23 @@ icon: "sparkles"
 ---
 
 <Warning>
-  This section is a design specification and roadmap. Oynk does not currently connect to Stellar, submit Stellar transactions, deploy Soroban contracts, or index Soroban events in this repository.
+  A separate Oynk settlement-contract MVP is [deployed on Stellar mainnet](https://stellar.expert/explorer/public/contract/CDTDCQ2Y6OASQVJGOFBA2EHP3AV7N6FFULJNEFGMORLYMNHECX7OO2W6). This repository does not contain its Rust source, WASM artifact, generated bindings, submitter, or event indexer, and the deployment is not presented as an audited production payment system. This section specifies the hardened target architecture and remaining application integration.
 </Warning>
+
+## Mainnet MVP evidence
+
+Contract ID: `CDTDCQ2Y6OASQVJGOFBA2EHP3AV7N6FFULJNEFGMORLYMNHECX7OO2W6`
+
+Deployment transaction: `58eb6b55c774aeff2a54b90358fe459bf60f0089113b45caa6f697ef100d2fa0`, recorded on July 11, 2026 at 17:06:19 UTC.
+
+The supplied explorer activity shows three request lifecycles reaching `claim_settlement_asset`:
+
+- Requests 1 and 2 exercised fiat-to-crypto creation, quoting, source-settler acceptance, deposit, source confirmation, and claim with 500 and 1,500 USDC respectively.
+- Request 3 exercised a fiat-to-fiat route from country code 840 to 414, including both source and destination settlement confirmation before claim, with 2,360 USDC deposited and claimed.
+
+USDC uses seven decimal places in these contract calls. The raw settlement amounts therefore normalize to 500, 1,500, and 2,360 USDC, totaling **4,360 USDC of settlement principal**. This counts each request once; counting both deposits and claims would produce 8,720 USDC of gross token movement by double-counting the same principal.
+
+This evidence proves that the listed contract calls executed with real USDC on Stellar mainnet. It does not independently prove the underlying fiat transfers, broad customer adoption, or audited production safety.
 
 ## Intended role
 

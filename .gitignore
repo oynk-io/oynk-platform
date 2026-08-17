@@ -4,3 +4,16 @@ dist
 *.log
 *.tsbuildinfo
 .DS_Store
+
+# SCF video render intermediates and superseded drafts
+scf-video/audio-openai/
+scf-video/audio-v2/
+scf-video/frames/
+scf-video/frames-v2/
+scf-video/segments/
+scf-video/segments-v2/
+scf-video/segments-openai/
+scf-video/oynk-scf-narrated-draft.mp4
+scf-video/oynk-scf-visual-draft.mp4
+scf-video/source/concat.txt
+scf-video/source/segments*.txt

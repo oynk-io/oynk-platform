@@ -33,7 +33,7 @@
         "groups": [
           { "group": "Start here", "pages": ["index", "get-started/current-status", "get-started/quickstart", "get-started/glossary"] },
           { "group": "How Oynk works", "pages": ["concepts/overview", "concepts/participants", "concepts/payment-lifecycle", "concepts/value-and-metrics"] },
-          { "group": "Architecture", "pages": ["architecture/system-design", "architecture/trust-boundaries", "architecture/data-model"] },
+          { "group": "Architecture", "pages": ["full-technical-architecture", "architecture/system-design", "architecture/trust-boundaries", "architecture/data-model"] },
           { "group": "Stellar & Soroban", "pages": ["stellar-soroban/overview", "stellar-soroban/settlement-contract", "stellar-soroban/smart-accounts", "stellar-soroban/asset-and-payment-model", "stellar-soroban/security"] },
           { "group": "Platform", "pages": ["platform/accounts-and-access", "platform/compliance", "platform/provider-network", "platform/operations-console"] },
           { "group": "Indexing & analytics", "pages": ["infrastructure/indexing", "infrastructure/bsc", "infrastructure/solana", "infrastructure/reliability"] },
@@ -52,7 +52,7 @@
     "socials": { "website": "https://oynk.io" },
     "links": [
       { "header": "Product", "items": [{ "label": "Oynk", "href": "https://oynk.io" }, { "label": "Console", "href": "https://console.oynk.io" }] },
-      { "header": "Documentation", "items": [{ "label": "Architecture", "href": "/architecture/system-design" }, { "label": "Stellar & Soroban", "href": "/stellar-soroban/overview" }, { "label": "Operations", "href": "/operations/runbook" }] }
+      { "header": "Documentation", "items": [{ "label": "Full technical architecture", "href": "/full-technical-architecture" }, { "label": "Stellar & Soroban", "href": "/stellar-soroban/overview" }, { "label": "Operations", "href": "/operations/runbook" }] }
     ]
   },
   "contextual": { "options": ["copy", "view", "chatgpt", "claude"] },

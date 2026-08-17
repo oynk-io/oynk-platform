@@ -1,0 +1,25 @@
+A business importing electronics or automotive parts may move hundreds of thousands of dollars every week. Even when blockchain settlement is inexpensive, the payment still passes through fragmented banking, foreign exchange, liquidity, on-ramp and payout relationships. At five hundred thousand dollars per week, a one-percent all-in cost is approximately two hundred and sixty thousand dollars per year.
+
+A conventional fintech can hide these providers behind one interface, but it does not remove their fees, spreads, delays or reconciliation failures. That model becomes especially expensive for high-volume commercial payments.
+
+Oynk's insight is that commercial liquidity already exists. What is missing is common coordination. Oynk turns fragmented bilateral relationships into a permissioned network of eligible providers, competitive quotes, committed rates and one referenced settlement journey.
+
+Oynk already has a live product foundation designed to connect payment applications, qualified liquidity providers and destination settlement partners across markets.
+
+Oynk is grounded in real payment operations. Across more than one thousand recorded off-chain and on-chain transactions, Oynk has processed over one million six hundred thousand US dollars. This validates direct experience with fragmented liquidity, foreign-exchange pricing, manual provider coordination, payout fulfillment, delays and reconciliation.
+
+We also deployed a Soroban settlement MVP on Stellar mainnet. Three completed request lifecycles used four thousand three hundred and sixty USDC of real settlement principal. The activity demonstrates quotes, provider participation, escrow funding, confirmations and claims. It is proof of execution, not a claim of audited production readiness or independently verified fiat finality.
+
+Through the grant-funded product, verified providers declare their corridors and capacity and compete through firm, expiring quotes. Oynk blocks providers that are ineligible, suspended, over their limits or unable to support the requested amount. When a business accepts a quote, its commercial terms become a time-bounded rate lock.
+
+A business may prefund a deposit for its rate lock. The amount needed to honor that obligation remains segregated and immediately available. If the business explicitly opts in, only a bounded portion of its excess balance may enter an approved Blend USDC pool. Oynk does not borrow, use leverage or promise principal or yield.
+
+Anchor Platform standardizes customer, payment and quote workflows. Privy provides embedded Stellar access, while Stellar Wallets Kit connects external wallets. Oynk manages eligibility, liquidity, rate locks and reconciliation. Blend improves the optional productivity of eligible excess deposits, and Stellar USDC with Soroban provides the common settlement layer.
+
+Compliance is part of the product. Oynk gates participation by business and beneficial-owner verification, sanctions and wallet risk, provider type, corridor permissions and transaction limits. Personal information remains off-chain, and production corridors activate only under the applicable approvals or regulated-partner arrangements.
+
+Our public documentation distinguishes what is implemented today, what the existing mainnet MVP proves and what the proposed production system still needs to deliver.
+
+With a one-hundred-and-thirty-five-thousand-dollar award, Oynk will deliver an integration MVP, a complete monitored testnet system and a controlled mainnet commercial payment flow.
+
+Oynk makes Stellar's efficiency visible where basis points matter most: permissioned liquidity, standardized access, programmable settlement and one visible commercial payment journey.

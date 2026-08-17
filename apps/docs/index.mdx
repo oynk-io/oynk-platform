@@ -1,13 +1,13 @@
 ---
 title: "Oynk documentation"
-description: "Understand Oynk's cross-border settlement architecture, current platform, blockchain visibility plane, and planned Stellar/Soroban protocol."
+description: "Understand Oynk's cross-border settlement architecture, current platform, blockchain visibility plane, and Stellar/Soroban roadmap."
 icon: "network"
 ---
 
 Oynk is building programmable infrastructure that coordinates payment applications, qualified liquidity sources, and local settlement providers across fragmented cross-border routes.
 
 <Warning>
-  **Implementation status matters.** This repository currently runs an identity and compliance foundation plus a BSC/Solana settlement-activity visibility plane. The Stellar network and Soroban protocol described in this documentation are the target settlement architecture; no Stellar SDK integration or Soroban contract is present in this repository today.
+  **Implementation status matters.** This repository currently runs an identity and compliance foundation plus a BSC/Solana settlement-activity visibility plane. A separate [Soroban settlement-contract MVP is deployed on Stellar mainnet](https://stellar.expert/explorer/public/contract/CDTDCQ2Y6OASQVJGOFBA2EHP3AV7N6FFULJNEFGMORLYMNHECX7OO2W6), but its source, bindings, submitter, and event indexer are not present in this repository. The broader Stellar application integration remains a target architecture.
 </Warning>
 
 ## What Oynk does
@@ -21,6 +21,7 @@ Today, the implemented platform focuses on visibility and operational foundation
 - Public aggregate activity and privacy-safe off-chain transaction reporting
 - Business, settlement-partner, and internal identities with organization-scoped roles
 - Password, OTP, session, CSRF, email-delivery, and business-compliance foundations
+- A separately deployed Stellar mainnet settlement-contract MVP with three completed lifecycles representing 4,360 USDC of real settlement principal
 
 <CardGroup cols={2}>
   <Card title="Understand the system" icon="workflow" href="/concepts/overview">Follow a payment from request to payout and see which layers own each decision.</Card>
@@ -36,16 +37,16 @@ flowchart LR
   App[Payment application] --> Control[Oynk control plane]
   Control --> Policy[Identity, compliance, limits]
   Control --> Providers[Qualified providers]
-  Control -. target architecture .-> Soroban[Soroban settlement contracts]
+  Control -. application integration planned .-> Soroban[Mainnet Soroban MVP]
   Providers --> Fiat[Local fiat rails]
-  Soroban -. future events .-> Visibility[Visibility plane]
+  Soroban -. event indexer planned .-> Visibility[Visibility plane]
   BSC[BSC] --> Visibility
   Solana[Solana] --> Visibility
   Visibility --> PG[(PostgreSQL)]
   PG --> Dashboard[Activity dashboard]
 ```
 
-The solid BSC/Solana visibility path is implemented. The dotted Soroban path is planned and must pass specification, testing, external audit, and deployment review before it can hold or control funds.
+The solid BSC/Solana visibility path is implemented in this repository. The Soroban MVP is deployed separately and has executed request, quote, settler acceptance, deposit, confirmation, and claim calls on mainnet. Its application integration and event-indexing paths remain planned, and a hardened contract must pass specification, testing, independent security review, and controlled release gates before production funds-at-risk use.
 
 ## Where to go next
 
