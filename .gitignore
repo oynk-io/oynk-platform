@@ -5,6 +5,12 @@ dist
 *.tsbuildinfo
 .DS_Store
 
+# Local integration application materials and reports
+/integration- application.md
+/integration-application-2.md
+/scf-integration-track-interest-form.txt
+/oynk-offchain-tx-report.csv
+
 # SCF video render intermediates and superseded drafts
 scf-video/audio-openai/
 scf-video/audio-v2/
