@@ -6,20 +6,11 @@ dist
 .DS_Store
 
 # Local integration application materials and reports
+/AGENTS.md
 /integration- application.md
 /integration-application-2.md
 /scf-integration-track-interest-form.txt
 /oynk-offchain-tx-report.csv
 
-# SCF video render intermediates and superseded drafts
-scf-video/audio-openai/
-scf-video/audio-v2/
-scf-video/frames/
-scf-video/frames-v2/
-scf-video/segments/
-scf-video/segments-v2/
-scf-video/segments-openai/
-scf-video/oynk-scf-narrated-draft.mp4
-scf-video/oynk-scf-visual-draft.mp4
-scf-video/source/concat.txt
-scf-video/source/segments*.txt
+# Local SCF video materials
+/scf-video/
