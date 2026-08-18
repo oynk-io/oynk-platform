@@ -1,19 +1,9 @@
----
-title: "Full technical architecture"
-description: "Stellar-specific integration architecture for Oynk's wallet access, Anchor on/off-ramp, Blend yield, and Soroban coordination and settlement flow."
-icon: "network"
-mode: "wide"
----
-
 # Oynk full technical architecture
 
 **Architecture status:** Working architecture, August 2026.
 
 This document consolidates Oynk's complete technical architecture into one review surface. Its primary purpose is to specify the SCF Integration Track work: how Privy, Stellar Wallets Kit, Anchor Platform, Blend v2, Stellar USDC, and Oynk's Soroban coordination and settlement protocol combine into one commercial-payment lifecycle. It also covers the implemented monorepo, identity and compliance foundation, BSC and Solana visibility plane, the separately deployed Stellar mainnet settlement MVP, data and API boundaries, and operational controls.
 
-<Warning>
-  **Implementation boundary:** The repository currently implements identity, organization access, a business-compliance draft flow, BSC and Solana indexing, PostgreSQL persistence, synchronization controls, aggregate activity APIs, and web interfaces. A separate [Soroban settlement-contract MVP is deployed on Stellar mainnet](https://stellar.expert/explorer/public/contract/CDTDCQ2Y6OASQVJGOFBA2EHP3AV7N6FFULJNEFGMORLYMNHECX7OO2W6). This repository does not contain that contract's source, artifact, bindings, submitter, or event indexer, nor complete smart accounts, payment orchestration, quote routing, provider assignment, or fiat payout connectors. Target-architecture sections describe the hardening and integration still required.
-</Warning>
 
 The mainnet MVP completed three settlement lifecycles using real USDC. With seven token decimals, the deposited principals normalize to 500, 1,500, and 2,360 USDC, totaling **4,360 USDC of settlement principal**. This measure counts each request once rather than double-counting its escrow deposit and subsequent claim.
 
