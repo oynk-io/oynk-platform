@@ -1,0 +1,3 @@
+[submodule "settlement-aggregator-protocol"]
+	path = settlement-aggregator-protocol
+	url = https://github.com/oynk-io/settlement-aggregator-protocol.git

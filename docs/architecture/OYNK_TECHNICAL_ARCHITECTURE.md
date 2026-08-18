@@ -1,10 +1,28 @@
-# Oynk technical architecture
+---
+mode: "wide"
+---
 
-Status: working architecture, August 2026. This document separates implemented dashboard/indexing capabilities, a separately deployed Soroban MVP, and the proposed hardened payment architecture.
+# Oynk full technical architecture
+
+**Architecture status:** Working architecture, August 2026.
+
+This document consolidates Oynk's complete technical architecture into one review surface. Its primary purpose is to specify the SCF Integration Track work: how Privy, Stellar Wallets Kit, Anchor Platform, Blend v2, Stellar USDC, and Oynk's Soroban coordination and settlement protocol combine into one commercial-payment lifecycle. It also covers the implemented monorepo, identity and compliance foundation, BSC and Solana visibility plane, the separately deployed Stellar mainnet settlement MVP, data and API boundaries, and operational controls.
+
+The mainnet MVP completed three settlement lifecycles using real USDC. With seven token decimals, the deposited principals normalize to 500, 1,500, and 2,360 USDC, totaling **4,360 USDC of settlement principal**. This measure counts each request once rather than double-counting its escrow deposit and subsequent claim.
 
 ## 1. Executive summary
 
-Oynk is intended to coordinate cross-border payment applications, qualified liquidity providers, and local settlement providers through a common settlement layer. The repository currently implements the visibility plane: BSC and Solana transfer indexing, PostgreSQL storage, synchronization operations, and a public activity dashboard. A separate settlement-contract MVP is deployed on Stellar mainnet at [`CDTDCQ2Y6OASQVJGOFBA2EHP3AV7N6FFULJNEFGMORLYMNHECX7OO2W6`](https://stellar.expert/explorer/public/contract/CDTDCQ2Y6OASQVJGOFBA2EHP3AV7N6FFULJNEFGMORLYMNHECX7OO2W6). Payment orchestration, application-side Stellar integration, smart accounts, provider assignment, compliance integrations, fiat payout connectors, and contract hardening remain proposed unless separately evidenced.
+Oynk is designed as programmable infrastructure between payment demand and local financial capability. Payment applications use a consistent lifecycle while qualified liquidity and settlement providers execute corridor-specific collection, conversion, digital-asset, and payout legs.
+
+The architecture separates five concerns:
+
+1. **Experience:** public web, payment experiences, and organization-specific operations consoles.
+2. **Control plane:** identity, authorization, exact-value validation, compliance policy, quotes, provider selection, payment state, and authoritative references.
+3. **Provider plane:** qualified participants that supply liquidity, banking connectivity, collection, exchange, and destination payout.
+4. **Settlement plane:** the deployed Soroban MVP and its proposed hardened successor governing funding, commitments, claims, refunds, and disputes.
+5. **Visibility plane:** chain indexers, normalized PostgreSQL records, reconciliation, metrics, and operational dashboards.
+
+The design deliberately separates observed blockchain movement from verified business settlement. A chain transaction proves accepted ledger activity; it does not prove customer authorization, provider eligibility, fiat delivery, or end-to-end payment completion.
 
 ## 2. System goals
 
@@ -55,7 +73,7 @@ Planned smart accounts may combine passkeys, Stellar G-account authorization, EV
 
 ## 9. Settlement-contract layer
 
-The deployed Soroban MVP records settlement requests, routes, settler assignments, escrowed settlement assets, deadlines, evidence hashes, claims, cancellations, refunds, and disputes. Explorer activity shows three requests reaching an on-chain claim: two fiat-to-crypto flows and one fiat-to-fiat flow. Using USDC's seven decimals, their escrow principals normalize to 500, 1,500, and 2,360 USDC, totaling 4,360 USDC of real settlement principal. This repository does not currently contain the MVP's Rust source, full WASM artifact, generated bindings, deployment manifest, or event indexer. A hardened version still requires explicit specifications, invariant and adversarial testing, independent security review, reproducible deployment evidence, and controlled production release gates.
+The deployed Soroban MVP records settlement requests, routes, settler assignments, escrowed settlement assets, deadlines, evidence hashes, claims, cancellations, refunds, and disputes. Explorer activity shows three requests reaching an on-chain claim: two fiat-to-crypto flows and one fiat-to-fiat flow. Using USDC's seven decimals, their escrow principals normalize to 500, 1,500, and 2,360 USDC, totaling 4,360 USDC of real settlement principal. This repository references candidate Rust source through the `settlement-aggregator-protocol` submodule and records public deployment evidence, but reproducible equivalence between that source and the deployed mainnet WASM remains unverified. Generated bindings and the event indexer are not yet integrated. A hardened version still requires explicit specifications, invariant and adversarial testing, independent security review, reproducible deployment evidence, and controlled production release gates.
 
 ## 10. Provider network
 
@@ -168,7 +186,7 @@ Unit-test normalization, cursor keys, range adaptation, rewind, deterministic id
 
 ## 26. Current limitations
 
-- A Soroban settlement MVP exists on mainnet but its source, bindings, submitter, and event indexer are not present in this repository; payment orchestration, smart accounts, provider registry, and compliance adapters also remain absent here.
+- A Soroban settlement MVP exists on mainnet and candidate source is referenced as a submodule, but source-to-WASM equivalence remains unverified; generated bindings, the event indexer, payment orchestration, smart accounts, provider registry, and compliance adapters also remain absent here.
 - Solana historical pagination/retry execution and Token-2022/source coverage are incomplete.
 - Chain lag is not yet surfaced from live safe tips.
 - Heuristic legacy pairing is not authoritative.
