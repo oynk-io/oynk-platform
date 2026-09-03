@@ -1,6 +1,6 @@
-# Oynk Cross-Border Settlement Dashboard
+# Oynk Platform
 
-A runnable pnpm monorepo that indexes stablecoin transfers directly from BNB Smart Chain and Solana, persists them in PostgreSQL, and displays operational cross-border settlement metrics in a React/Tailwind dashboard.
+A pnpm monorepo for Oynk's programmable payment and settlement platform. It contains the public web experience, organization operations console, transaction-visibility application, API and shared domain models, technical documentation, and blockchain indexers for BNB Smart Chain and Solana.
 
 ## Included
 
