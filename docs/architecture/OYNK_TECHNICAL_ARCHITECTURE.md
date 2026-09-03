@@ -73,7 +73,7 @@ Planned smart accounts may combine passkeys, Stellar G-account authorization, EV
 
 ## 9. Settlement-contract layer
 
-The deployed Soroban MVP records settlement requests, routes, settler assignments, escrowed settlement assets, deadlines, evidence hashes, claims, cancellations, refunds, and disputes. Explorer activity shows three requests reaching an on-chain claim: two fiat-to-crypto flows and one fiat-to-fiat flow. Using USDC's seven decimals, their escrow principals normalize to 500, 1,500, and 2,360 USDC, totaling 4,360 USDC of real settlement principal. This repository references candidate Rust source through the `settlement-aggregator-protocol` submodule and records public deployment evidence, but reproducible equivalence between that source and the deployed mainnet WASM remains unverified. Generated bindings and the event indexer are not yet integrated. A hardened version still requires explicit specifications, invariant and adversarial testing, independent security review, reproducible deployment evidence, and controlled production release gates.
+The deployed Soroban MVP records settlement requests, routes, settler assignments, escrowed settlement assets, deadlines, evidence hashes, claims, cancellations, refunds, and disputes. Explorer activity shows three requests reaching an on-chain claim: two fiat-to-crypto flows and one fiat-to-fiat flow. Using USDC's seven decimals, their escrow principals normalize to 500, 1,500, and 2,360 USDC, totaling 4,360 USDC of real settlement principal. The current live WASM matches the public artifact built from source commit `60489c3`; upload, upgrade, and post-upgrade verification evidence is recorded through the `settlement-aggregator-protocol` submodule. Generated bindings and the event indexer are not yet integrated. Further hardening still requires explicit specifications, broader invariant and adversarial testing, independent security review, and controlled production release gates.
 
 ## 10. Provider network
 
@@ -186,7 +186,7 @@ Unit-test normalization, cursor keys, range adaptation, rewind, deterministic id
 
 ## 26. Current limitations
 
-- A Soroban settlement MVP exists on mainnet and candidate source is referenced as a submodule, but source-to-WASM equivalence remains unverified; generated bindings, the event indexer, payment orchestration, smart accounts, provider registry, and compliance adapters also remain absent here.
+- A Soroban settlement MVP exists on mainnet, and its current live WASM matches the public source artifact referenced through the submodule; generated bindings, the event indexer, payment orchestration, smart accounts, provider registry, and compliance adapters remain absent here.
 - Solana historical pagination/retry execution and Token-2022/source coverage are incomplete.
 - Chain lag is not yet surfaced from live safe tips.
 - Heuristic legacy pairing is not authoritative.
