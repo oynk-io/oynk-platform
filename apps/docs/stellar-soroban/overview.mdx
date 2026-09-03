@@ -5,8 +5,12 @@ icon: "sparkles"
 ---
 
 <Warning>
-  A separate Oynk settlement-contract MVP is [deployed on Stellar mainnet](https://stellar.expert/explorer/public/contract/CDTDCQ2Y6OASQVJGOFBA2EHP3AV7N6FFULJNEFGMORLYMNHECX7OO2W6). This repository does not contain its Rust source, WASM artifact, generated bindings, submitter, or event indexer, and the deployment is not presented as an audited production payment system. This section specifies the hardened target architecture and remaining application integration.
+  A separate Oynk settlement-contract MVP is [deployed on Stellar mainnet](https://stellar.expert/explorer/public/contract/CDTDCQ2Y6OASQVJGOFBA2EHP3AV7N6FFULJNEFGMORLYMNHECX7OO2W6). Public candidate source, locked tests, and build/deployment manifests are referenced through the [`settlement-aggregator-protocol`](https://github.com/oynk-io/settlement-aggregator-protocol) submodule. The candidate's generated WASM does not match the historical deployment's on-chain WASM hash, so that deployment remains source-unverified and is not presented as an audited production payment system. Generated application bindings, a submitter, and an event indexer remain unimplemented here.
 </Warning>
+
+## Public contract work
+
+The contract workspace is maintained by [Emmanuel Ekoja (`emmanuelekoja`)](https://github.com/emmanuelekoja). Candidate source commit [`60489c3`](https://github.com/oynk-io/settlement-aggregator-protocol/commit/60489c36f9e69aeea54e4075948e5b3e2083d440) builds with the locked toolchain to WASM SHA-256 `d16b5f8a2b9971e2ea45bf0737731ed6348bd83b7c30fde275589f69ea132bc9`. Five SDK invariant tests and two WASM lifecycle tests pass. The machine-readable record is published in [`deployments/candidate.json`](https://github.com/oynk-io/settlement-aggregator-protocol/blob/main/deployments/candidate.json).
 
 ## Mainnet MVP evidence
 

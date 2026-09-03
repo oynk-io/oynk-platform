@@ -2,6 +2,20 @@
 
 A pnpm monorepo for Oynk's programmable payment and settlement platform. It contains the public web experience, organization operations console, transaction-visibility application, API and shared domain models, technical documentation, and blockchain indexers for BNB Smart Chain and Solana.
 
+## Soroban protocol
+
+The open-source Soroban contract workspace is included as the
+[`settlement-aggregator-protocol`](settlement-aggregator-protocol) submodule. It
+contains the contract implementation, locked unit and WASM lifecycle tests,
+and machine-readable build and deployment evidence. The contract is maintained
+by [Emmanuel Ekoja (`emmanuelekoja`)](https://github.com/emmanuelekoja).
+
+After cloning, initialize it with:
+
+```bash
+git submodule update --init --recursive
+```
+
 ## Included
 
 - Five seeded settlement wallets supplied for the MVP
