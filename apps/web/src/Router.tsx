@@ -11,9 +11,9 @@ export default function Router() {
   switch (window.location.pathname) {
     case "/":
       updateMetadata(
-        "Oynk — Payment Infrastructure for Connected Economies",
-        "Oynk is a programmable payment and settlement platform designed for fast-growing economies, connecting payment platforms, qualified liquidity providers, and local partners.",
-        "#fafbf8"
+        "Oynk — Payment Infrastructure & Consumer Smart Accounts",
+        "Oynk connects payment platforms, liquidity and settlement providers for cross-border payments, alongside a consumer smart-account app.",
+        "#f7f8f2"
       );
       return <LandingPage />;
     case "/dashboard":
@@ -28,7 +28,7 @@ export default function Router() {
       updateMetadata(
         "Page Not Found — Oynk",
         "The requested Oynk page could not be found.",
-        "#fafbf8"
+        "#f7f8f2"
       );
       return <NotFoundPage />;
   }

@@ -9,33 +9,24 @@ import {
   Eye,
   Github,
   Globe2,
-  Handshake,
   Landmark,
   Layers3,
-  KeyRound,
   Menu,
+  Mail,
   Network,
-  PiggyBank,
-  RadioTower,
   Route,
-  ScanLine,
-  ShieldCheck,
   Smartphone,
-  Store,
   Twitter,
   Workflow,
   X,
 } from "lucide-react";
+import { NewsletterForm } from "../components/NewsletterForm";
 import { BrandMark } from "../components/BrandMark";
 
-const transactionsUrl = import.meta.env.VITE_TRANSACTIONS_SITE_URL ?? "https://transactions.oynk.io";
-
 const navigation = [
-  { label: "How it works", href: "#how-it-works" },
-  { label: "Architecture", href: "#architecture" },
-  { label: "Network", href: "#network" },
-  { label: "Products", href: "#products" },
-  { label: "Experience", href: "#experience" },
+  { label: "Settlement network", href: "#network" },
+  { label: "Consumer app", href: "#consumer-app" },
+  { label: "Our experience", href: "#experience" },
 ] as const;
 
 const consoleUrl = import.meta.env.VITE_CONSOLE_SITE_URL ?? "https://console.oynk.io";
@@ -106,8 +97,8 @@ function LandingHeader() {
           {navigation.map((item) => <a key={item.label} href={item.href} className="landing-nav-link">{item.label}</a>)}
         </nav>
         <div className="landing-desktop-actions items-center gap-3">
-          <a href={`${consoleUrl}/login`} className="landing-nav-link">Sign in</a>
-          <a href={`${consoleUrl}/signup`} className="landing-button landing-button-primary">Get started <ArrowRight size={16} aria-hidden="true" /></a>
+          <a href={`${consoleUrl}/login`} className="landing-nav-link">Console sign in</a>
+          <a href={`${consoleUrl}/signup`} className="landing-button landing-button-primary">Join the network <ArrowRight size={16} aria-hidden="true" /></a>
         </div>
         <button ref={menuButtonRef} type="button" className="landing-icon-button" onClick={() => setOpen(true)} aria-expanded={open} aria-controls="mobile-navigation" aria-label="Open navigation">
           <Menu size={22} />
@@ -120,8 +111,8 @@ function LandingHeader() {
             <div className="landing-mobile-nav-header"><a href="/" aria-label="Oynk home" onClick={() => closeNavigation()}><Wordmark /></a><button type="button" className="landing-icon-button landing-mobile-close" onClick={() => closeNavigation({ restoreFocus: true })} aria-label="Close navigation" aria-expanded={open} aria-controls="mobile-navigation"><X size={22} /></button></div>
             <div className="flex flex-col py-3">
             {navigation.map((item, index) => <a ref={index === 0 ? firstMobileLinkRef : undefined} key={item.label} href={item.href} className="landing-mobile-link" onClick={() => closeNavigation()}>{item.label}<ChevronRight size={17} aria-hidden="true" /></a>)}
-            <a href={`${consoleUrl}/login`} className="landing-mobile-link" onClick={() => closeNavigation()}>Sign in<ChevronRight size={17} /></a>
-            <a href={`${consoleUrl}/signup`} className="landing-button landing-button-primary mt-3 justify-center" onClick={() => closeNavigation()}>Get started <ArrowRight size={16} aria-hidden="true" /></a>
+            <a href={`${consoleUrl}/login`} className="landing-mobile-link" onClick={() => closeNavigation()}>Console sign in<ChevronRight size={17} /></a>
+            <a href={`${consoleUrl}/signup`} className="landing-button landing-button-primary mt-3 justify-center" onClick={() => closeNavigation()}>Join the network <ArrowRight size={16} aria-hidden="true" /></a>
             </div>
           </nav>
         </div>,
@@ -180,82 +171,21 @@ const steps = [
   { icon: Eye, number: "04", title: "Activity remains visible", copy: "The platform can follow transaction and settlement progress through completion." },
 ] as const;
 
-const solutions = [
-  { icon: Building2, title: "Payment platforms", copy: "Expand cross-border capabilities through a common settlement layer rather than a separate system for every route." },
-  { icon: Smartphone, title: "Consumer applications", copy: "Add international payment experiences without building every market connection independently." },
-  { icon: Store, title: "Businesses and commerce platforms", copy: "Coordinate international value movement with clearer settlement visibility." },
-  { icon: Handshake, title: "Settlement and liquidity partners", copy: "Support payment demand through a structured network and programmable coordination workflow." },
-] as const;
-
-const benefits = [
-  { title: "Provider independence", copy: "The network is designed to support multiple qualified liquidity and settlement providers rather than depend on one source." },
-  { title: "Modular expansion", copy: "The model is designed to reduce repeated integration work as eligible providers support additional payment routes." },
-  { title: "Programmable coordination", copy: "A common workflow brings payment instructions, provider participation, and completion status together." },
-  { title: "Transaction visibility", copy: "Platforms can maintain a clearer view of value movement across participating payment paths." },
-] as const;
-
-const architecturePrinciples = [
-  {
-    icon: KeyRound,
-    label: "Authorization",
-    title: "Bounded, user-controlled access",
-    copy: "Oynk is exploring smart-account authorization with passkeys and limited sessions that can restrict spend, permitted actions, duration, and delegate access.",
-  },
-  {
-    icon: ShieldCheck,
-    label: "Settlement controls",
-    title: "Explicit rules for value movement",
-    copy: "The proposed Stellar and Soroban settlement layer is intended to coordinate requests, provider commitments, deadlines, evidence, claims, refunds, and disputes.",
-  },
-  {
-    icon: RadioTower,
-    label: "Low-connectivity access",
-    title: "Designed for constrained environments",
-    copy: "A proposed one-sided offline model lets a user prepare a tightly limited authorization while an online merchant submits it for network verification.",
-  },
-] as const;
-
-const productDirections = [
-  {
-    icon: Globe2,
-    status: "Current focus",
-    title: "Cross-border payments",
-    copy: "Coordinate payment demand, digital settlement, liquidity, and local payout through qualified providers instead of a separate stack for every corridor.",
-  },
-  {
-    icon: Banknote,
-    status: "Product direction",
-    title: "Everyday and micro-payments",
-    copy: "Support smaller, frequent payments for people and businesses where high fees, disconnected rails, and cash-heavy workflows make digital commerce harder.",
-  },
-  {
-    icon: ScanLine,
-    status: "Product direction",
-    title: "Merchant and terminal payments",
-    copy: "Extend the same payment foundation to service payments, stores, transport operators, and other merchants through software and point-of-sale experiences.",
-  },
-  {
-    icon: PiggyBank,
-    status: "Product direction",
-    title: "Savings-oriented experiences",
-    copy: "Enable partner-supported tools for holding, organizing, and moving value more predictably, subject to market-specific licensing, custody, and consumer-protection requirements.",
-  },
-] as const;
-
 export function LandingPage() {
   return (
     <div className="landing-page">
+      <a className="skip-link" href="#main-content">Skip to content</a>
       <LandingHeader />
-      <main>
+      <main id="main-content" tabIndex={-1}>
         <section className="landing-hero" aria-labelledby="hero-title">
           <div className="landing-container grid items-center gap-14 py-20 lg:grid-cols-[1.02fr_.98fr] lg:py-28 xl:gap-20">
             <div>
               <div className="landing-kicker"><Globe2 size={15} aria-hidden="true" /> Payment infrastructure for connected economies</div>
               <h1 id="hero-title" className="landing-hero-title">One network for moving money across markets.</h1>
-              <p className="landing-hero-copy">Oynk is a programmable payment and settlement platform designed for fast-growing economies—connecting payment platforms, qualified liquidity providers, and local partners across cross-border transfers, everyday payments, and merchant commerce.</p>
+              <p className="landing-hero-copy">Oynk connects payment platforms, liquidity providers and local settlement partners to move money across borders. Oynk consumer app brings USDC savings, seamless payments and DeFi-powered financing for RWA into one personal financial experience.</p>
               <div className="mt-8 flex flex-col gap-3 sm:flex-row">
                 <a href="#network" className="landing-button landing-button-primary">Explore the network <ArrowRight size={17} aria-hidden="true" /></a>
-                <a href={transactionsUrl} className="landing-button landing-button-secondary">View on-chain activity</a>
+                <a href="#consumer-app" className="landing-button landing-button-secondary">Meet the consumer app</a>
               </div>
               <p className="mt-6 flex items-center gap-2 text-sm text-[#60716b]"><span className="h-1.5 w-1.5 rounded-full bg-[#e8765a]" aria-hidden="true" />Independent of any single exchange, bank, marketplace, or liquidity source.</p>
             </div>
@@ -263,18 +193,9 @@ export function LandingPage() {
           </div>
         </section>
 
-        <section className="border-y border-[#dfe5e1] bg-white" aria-label="Network participants">
-          <div className="landing-container py-7">
-            <p className="mb-5 text-center text-xs font-semibold uppercase tracking-[0.18em] text-[#74827d]">Designed to connect the participants already moving value across markets</p>
-            <div className="grid grid-cols-2 gap-x-5 gap-y-5 text-center text-sm font-medium text-[#42534d] sm:grid-cols-3 lg:grid-cols-6">
-              <span>Payment platforms</span><span>Liquidity providers</span><span>OTC desks</span><span>Settlement providers</span><span>Payment partners</span><span>Financial institutions</span>
-            </div>
-          </div>
-        </section>
-
-        <section id="about" className="landing-section scroll-mt-24">
+        <section id="network" className="landing-section scroll-mt-24">
           <div className="landing-container grid gap-12 lg:grid-cols-2 lg:gap-20">
-            <SectionHeading eyebrow="The fragmentation problem" title="Every new corridor can become another system to build and operate." copy="Market expansion often brings new local integrations, banking relationships, liquidity arrangements, payout operations, and settlement processes. Existing capacity is spread across independent participants and frequently coordinated one route at a time." />
+            <SectionHeading eyebrow="Settlement network" title="Expand across markets through one settlement layer." copy="For payment platforms, businesses and teams building consumer apps. Oynk connects payment demand with qualified liquidity and local settlement providers, reducing the repeated integration and operational work of opening each new corridor." />
             <div className="corridor-comparison" aria-label="Comparison of bespoke corridor expansion and Oynk's modular network model">
               <div className="corridor-column corridor-column-fragmented">
                 <span className="corridor-label">Corridor by corridor</span>
@@ -286,7 +207,7 @@ export function LandingPage() {
                 <span className="corridor-label">Oynk’s model</span>
                 <h3>One common settlement layer</h3>
                 <div className="corridor-network-core"><span>Payment application</span><ArrowRight size={14} /><strong>Oynk</strong><ArrowRight size={14} /><span>Qualified provider</span></div>
-                <p>The model is designed so eligible providers can be added or replaced without rebuilding the full settlement experience.</p>
+                <p>Eligible providers can be added or replaced through a common workflow. Each route depends on partner coverage, liquidity and operational readiness.</p>
               </div>
             </div>
           </div>
@@ -301,85 +222,33 @@ export function LandingPage() {
           </div>
         </section>
 
-        <section id="architecture" className="landing-section architecture-section scroll-mt-20">
-          <div className="landing-container">
-            <div className="architecture-heading-grid">
-              <SectionHeading eyebrow="Architecture direction" title="Built for controlled settlement—not a closed payment silo." copy="Oynk’s product direction combines user authorization, programmable settlement controls, and qualified provider execution while keeping each responsibility distinct." />
-              <div className="architecture-status" role="note">
-                <span>Development status</span>
-                <p>Smart accounts, Soroban settlement controls, and low-connectivity authorization are proposed capabilities under active design. The public activity dashboard currently indexes supported BSC and Solana transactions.</p>
-              </div>
-            </div>
-            <div className="architecture-principles">
-              {architecturePrinciples.map((principle) => <article key={principle.title} className="architecture-card"><span className="architecture-card-icon"><principle.icon size={22} aria-hidden="true" /></span><p className="landing-eyebrow">{principle.label}</p><h3>{principle.title}</h3><p>{principle.copy}</p></article>)}
-            </div>
-            <p className="architecture-caveat">Phone numbers may support account discovery or recovery, but cryptographic keys—not phone-number possession—authorize payment actions. Low-connectivity operation still requires an online submitting participant and strict replay, expiry, and exposure controls.</p>
-          </div>
-        </section>
-
-        <section id="products" className="landing-section product-direction-section scroll-mt-20">
-          <div className="landing-container">
-            <div className="product-direction-heading">
-              <SectionHeading eyebrow="One foundation, multiple payment needs" title="From cross-border settlement to everyday economic activity." copy="Fast-growing markets often rely on disconnected bank transfers, cash, wallets, card networks, exchange liquidity, and manual payout relationships. Oynk’s long-term product direction is to connect these fragmented experiences through a common coordination and settlement foundation." />
-              <div className="product-thesis" role="note">
-                <span>Product thesis</span>
-                <strong>Movement. Acceptance. Resilience.</strong>
-                <p>Build the shared infrastructure once, then deliver focused experiences for people, businesses, and qualified network partners.</p>
-              </div>
-            </div>
-            <div className="product-direction-grid">
-              {productDirections.map((product) => <article key={product.title} className="product-direction-card"><div className="product-direction-card-top"><span className="product-direction-icon"><product.icon size={22} aria-hidden="true" /></span><span className={product.status === "Current focus" ? "product-status product-status-current" : "product-status"}>{product.status}</span></div><h3>{product.title}</h3><p>{product.copy}</p></article>)}
-            </div>
-            <p className="product-direction-note">Roadmap capabilities are not presented as currently available financial products. Launch scope will depend on partner coverage, regulatory permissions, safeguarding arrangements, compliance controls, and market readiness.</p>
-          </div>
-        </section>
-
-        <section id="solutions" className="landing-section scroll-mt-20">
-          <div className="landing-container">
-            <SectionHeading eyebrow="Who it serves" title="Infrastructure for platforms and network participants." copy="Oynk is designed to support multiple payment experiences, settlement providers, liquidity sources, merchants, and destination markets through one coordination layer." />
-            <div className="mt-12 grid gap-4 md:grid-cols-2">
-              {solutions.map((solution) => <article key={solution.title} className="solution-card"><span className="solution-card-icon"><solution.icon size={22} aria-hidden="true" /></span><div><h3>{solution.title}</h3><p>{solution.copy}</p></div></article>)}
-            </div>
-          </div>
-        </section>
-
-        <section id="experience" className="landing-section experience-section scroll-mt-20">
-          <div className="landing-container grid items-center gap-12 lg:grid-cols-[.78fr_1.22fr] lg:gap-20">
-            <div className="experience-marker">
-              <span className="experience-value">$2,000,000 USD</span>
-              <span className="experience-label">Cross-border activity facilitated by Oynk’s founder</span>
-              <small>Combined onchain settlement and offchain fiat-to-fiat payment activity.</small>
-            </div>
+        <section id="consumer-app" className="landing-section consumer-app-section scroll-mt-20">
+          <div className="landing-container consumer-app-grid">
             <div>
-              <SectionHeading eyebrow="Built from operating experience" title="The network is grounded in real settlement challenges." copy="Oynk’s founder has facilitated approximately $2,000,000 USD in cross-border settlements using digital assets as the settlement mechanism for demand between the United States and Nigeria." />
-              <p className="mt-5 max-w-2xl text-[.95rem] leading-7 text-[#60716b]">That hands-on experience exposed recurring challenges around fragmented liquidity, foreign-exchange pricing, manual settlement coordination, payout fulfillment, delays, and transaction visibility. Oynk is being built to turn those operational lessons into repeatable, programmable infrastructure for payment platforms and qualified settlement providers.</p>
+              <SectionHeading eyebrow="A product for individuals" title="Meet the Oynk consumer app." copy="Alongside its cross-border settlement services, Oynk is building a personal financial experience around a SocketFi smart account. Access your account with a passkey, see your USDC balance and review transfers before approving them." />
+              <p className="consumer-app-roadmap">Pool participation, purchasing power and provider-backed asset financing are planned extensions of the consumer product.</p>
             </div>
-          </div>
-        </section>
-
-        <section id="network" className="landing-section scroll-mt-20 bg-[#f1f4f0]">
-          <div className="landing-container grid items-center gap-14 lg:grid-cols-[.9fr_1.1fr] lg:gap-20">
-            <div className="network-story" aria-hidden="true">
-              <div className="network-story-center"><Network size={27} /><span>Oynk settlement layer</span></div>
-              <div className="network-story-item network-story-a"><Building2 size={18} /><span>Payment applications</span></div>
-              <div className="network-story-item network-story-b"><Banknote size={18} /><span>Liquidity providers</span></div>
-              <div className="network-story-item network-story-c"><Landmark size={18} /><span>Settlement providers</span></div>
-              <div className="network-story-item network-story-d"><Route size={18} /><span>Local payment paths</span></div>
-            </div>
-            <div>
-              <SectionHeading eyebrow="Modular corridor expansion" title="Add qualified providers—not another bespoke payment stack." copy="Oynk’s modular model is designed to support new routes by onboarding eligible settlement and liquidity providers through a common layer, rather than rebuilding the complete system for every country pair." />
-              <div className="mt-8 space-y-5">
-                <div className="network-point"><span>01</span><div><h3>Multiple independent providers</h3><p>The network can include qualified liquidity sources, OTC desks, payment partners, and local settlement providers.</p></div></div>
-                <div className="network-point"><span>02</span><div><h3>Replaceable participation</h3><p>The model is designed so changing a liquidity or destination provider does not require redesigning the entire settlement layer.</p></div></div>
-                <div className="network-point"><span>03</span><div><h3>Responsible market expansion</h3><p>Each route still depends on provider eligibility, liquidity, banking connectivity, compliance standards, and operational reliability.</p></div></div>
+            <figure className="consumer-app-showcase">
+              <div className="consumer-showcase-heading"><span className="consumer-preview-label"><span aria-hidden="true" />App preview</span><span>Built around you.</span></div>
+              <div className="consumer-device-stage">
+                <div className="consumer-device">
+                  <img src="/consumer-app.png" width="1170" height="2532" loading="lazy" decoding="async" alt="Oynk consumer app home screen showing a test-USDC smart-account balance, money actions and Home, Pool, Explore and Profile navigation." />
+                </div>
               </div>
-            </div>
+              <figcaption>
+                <div className="consumer-platforms" aria-label="Coming soon on iOS and Android">
+                  <div className="consumer-platform"><Smartphone size={22} aria-hidden="true" /><span><small>Coming soon</small><strong>iOS</strong></span></div>
+                  <div className="consumer-platform"><Smartphone size={22} aria-hidden="true" /><span><small>Coming soon</small><strong>Android</strong></span></div>
+                </div>
+                <p>Preview from the app on Testnet. Public downloads are not available yet.</p>
+              </figcaption>
+            </figure>
           </div>
         </section>
 
         <section className="landing-section coordination-section">
           <div className="landing-container">
-            <SectionHeading eyebrow="Designed for provider choice" title="Settlement coordination and liquidity sourcing stay separate." copy="Oynk coordinates the payment and settlement journey while independent network participants provide liquidity, local payment capabilities, banking connectivity, and market expertise." align="center" />
+            <SectionHeading eyebrow="Working together" title="Oynk coordinates. Providers deliver locally." copy="Payment platforms use a common workflow, while independent liquidity and settlement partners bring the capabilities needed in each market." align="center" />
             <div className="coordination-grid mt-12">
               <article className="coordination-card coordination-card-oynk">
                 <span className="coordination-icon"><Workflow size={22} aria-hidden="true" /></span>
@@ -389,8 +258,6 @@ export function LandingPage() {
                   <li><CheckCircle2 size={15} aria-hidden="true" />Payment instructions</li>
                   <li><CheckCircle2 size={15} aria-hidden="true" />Provider participation</li>
                   <li><CheckCircle2 size={15} aria-hidden="true" />Settlement progress</li>
-                  <li><CheckCircle2 size={15} aria-hidden="true" />Transaction visibility</li>
-                  <li><CheckCircle2 size={15} aria-hidden="true" />Completion workflow</li>
                 </ul>
               </article>
               <div className="coordination-connector" aria-hidden="true"><span>coordinates with</span><ArrowRight size={20} /></div>
@@ -403,48 +270,43 @@ export function LandingPage() {
                   <li><CheckCircle2 size={15} aria-hidden="true" />Local payment capability</li>
                   <li><CheckCircle2 size={15} aria-hidden="true" />Banking connectivity</li>
                   <li><CheckCircle2 size={15} aria-hidden="true" />Payout fulfillment</li>
-                  <li><CheckCircle2 size={15} aria-hidden="true" />Market expertise</li>
                 </ul>
               </article>
             </div>
-            <p className="coordination-note">This separation allows the network to support different qualified providers and local capabilities without rebuilding settlement coordination whenever a liquidity source changes.</p>
+            <p className="coordination-note">Merchant and everyday payments are future directions. Soroban settlement controls and low-connectivity authorization are under development. <a href="https://docs.oynk.io" target="_blank" rel="noopener noreferrer" className="underline underline-offset-4">Explore the architecture <ArrowRight size={13} className="inline" aria-hidden="true" /></a></p>
           </div>
         </section>
 
-        <section className="landing-section">
+        <section id="experience" className="landing-section experience-section scroll-mt-20">
+          <div className="landing-container grid items-center gap-12 lg:grid-cols-[.78fr_1.22fr] lg:gap-20">
+            <div className="experience-marker">
+              <span className="experience-value">$2,000,000 USD</span>
+              <span className="experience-label">Cross-border activity facilitated by Oynk’s founder</span>
+              <small>Combined onchain settlement and offchain fiat-to-fiat payment activity.</small>
+            </div>
+            <div>
+              <SectionHeading eyebrow="Built from operating experience" title="The network is grounded in real settlement challenges." copy="Oynk grew from its founder’s hands-on experience facilitating cross-border payments between the United States and Nigeria. Fragmented liquidity, manual coordination and payout delays shaped the network being built today." />
+
+            </div>
+          </div>
+        </section>
+
+        <section id="newsletter" className="landing-section scroll-mt-20" aria-labelledby="newsletter-title">
           <div className="landing-container">
-            <div className="activity-feature">
-              <div className="activity-copy">
-                <p className="landing-eyebrow">Transaction visibility</p>
-                <h2 className="landing-section-title">Explore indexed on-chain activity.</h2>
-                <p className="landing-section-copy">View the blockchain transactions currently indexed by Oynk’s activity dashboard, including recorded transaction flows and supported chain activity.</p>
-                <a href={transactionsUrl} className="landing-button landing-button-light mt-8">Explore network activity <ArrowRight size={17} aria-hidden="true" /></a>
+            <div className="newsletter-feature">
+              <div className="newsletter-copy">
+                <p className="landing-eyebrow">The Oynk newsletter</p>
+                <h2 id="newsletter-title" className="landing-section-title">Be part of what’s next.</h2>
+                <p className="landing-section-copy">Get updates on the Oynk consumer app, new network partnerships and product launches.</p>
               </div>
-              <div className="activity-visual" aria-hidden="true">
-                <div className="activity-visual-top"><span>Recorded activity</span><span className="activity-live-dot">On-chain</span></div>
-                <div className="activity-flow"><span className="flow-node">Origin</span><span className="flow-line"><i /></span><span className="flow-node">Destination</span></div>
-                <div className="activity-bars">{[32, 48, 41, 68, 53, 76, 61, 84, 70, 91].map((height, index) => <i key={index} style={{ height: `${height}%` }} />)}</div>
-                <div className="activity-legend"><span><i className="bg-[#6ee7b7]" />Inflow</span><span><i className="bg-[#7ea6ff]" />Outflow</span></div>
+              <div className="newsletter-action">
+                <span className="newsletter-icon" aria-hidden="true"><Mail size={30} /></span>
+                <NewsletterForm />
               </div>
             </div>
           </div>
         </section>
 
-        <section className="landing-section pt-4">
-          <div className="landing-container">
-            <SectionHeading eyebrow="Why Oynk" title="A durable layer between payment demand and local capability." copy="Oynk is designed to coordinate multiple providers through one programmable settlement experience—without tying the network to a single marketplace, bank, exchange, or liquidity source." align="center" />
-            <div className="mt-12 grid gap-px overflow-hidden rounded-3xl border border-[#dfe5e1] bg-[#dfe5e1] md:grid-cols-2 lg:grid-cols-4">
-              {benefits.map((benefit, index) => <article key={benefit.title} className="benefit-card"><span>0{index + 1}</span><h3>{benefit.title}</h3><p>{benefit.copy}</p></article>)}
-            </div>
-          </div>
-        </section>
-
-        <section className="px-4 py-20 sm:px-6 sm:py-28">
-          <div className="final-cta">
-            <div><p className="landing-eyebrow">Build the network</p><h2>Help shape the next generation of cross-border settlement.</h2><p>Oynk is designed for payment platforms, qualified liquidity providers, local settlement providers, and infrastructure partners.</p></div>
-            <div className="flex shrink-0 flex-col gap-3 sm:flex-row"><a href="https://docs.oynk.io" target="_blank" rel="noopener noreferrer" className="landing-button landing-button-light">Review the architecture <ArrowRight size={17} aria-hidden="true" /></a><a href={transactionsUrl} className="landing-button landing-button-ghost-light">View activity</a></div>
-          </div>
-        </section>
       </main>
 
       <footer className="landing-footer">

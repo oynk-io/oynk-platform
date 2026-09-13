@@ -24,6 +24,7 @@ const schema = z.object({
 	DATABASE_URL: z.string().min(1),
 
 	API_PORT: z.coerce.number().int().positive().default(4000),
+	CONSUMER_ONLY: z.enum(["true", "false"]).default("false").transform(value => value === "true"),
 	ALLOWED_ORIGIN: z.string().default("http://localhost:5173"),
 
 	/**

@@ -20,11 +20,13 @@
   "dependencies": {
     "@oynk/shared": "workspace:*",
     "@solana/web3.js": "^1.98.4",
+    "@stellar/stellar-sdk": "14.6.1",
     "cors": "^2.8.5",
     "dotenv": "^17.2.1",
     "ethers": "^6.15.0",
     "express": "^5.1.0",
     "helmet": "^8.1.0",
+    "jose": "^6.2.12",
     "pg": "^8.16.3",
     "zod": "^4.1.5"
   },

@@ -11,6 +11,11 @@ import { syncRouter } from "./routes/syncRoutes.js";
 import { pool } from "./db/pool.js";
 import { authRouter } from "./routes/authRoutes.js";
 import { complianceRouter } from "./routes/complianceRoutes.js";
+import { consumerRouter, paystackWebhook } from './consumer/routes.js';
+import { reconcilePendingDeposits } from './consumer/service.js';
+
+import { newsletterRouter, newsletterService } from './newsletter/routes.js';
+import { sendEmail } from './email/emailService.js';
 
 const app = express();
 const server = http.createServer(app);
@@ -28,6 +33,7 @@ app.use(
 	}),
 );
 
+app.use('/api/paystack/webhook', paystackWebhook);
 app.use(express.json({ limit: "256kb" }));
 
 app.get("/api/health", (_request, response) => {
@@ -46,17 +52,21 @@ app.get("/health/ready", async (_request, response) => {
 	}
 });
 
-app.use("/api/dashboard", dashboardRouter);
-app.use("/api/sync", syncRouter);
-app.use("/api/auth", authRouter);
-app.use("/api/compliance", complianceRouter);
+if (!config.CONSUMER_ONLY) {
+ app.use("/api/dashboard", dashboardRouter);
+ app.use("/api/sync", syncRouter);
+ app.use("/api/auth", authRouter);
+ app.use("/api/compliance", complianceRouter);
+}
+app.use('/api/consumer',consumerRouter);
+app.use('/api/newsletter',newsletterRouter);
 
 server.listen(config.API_PORT, "0.0.0.0", () => {
 	console.info(
 		`Oynk dashboard API on ` + `http://localhost:${config.API_PORT}`,
 	);
 
-	if (config.SYNC_ON_START) {
+	if (!config.CONSUMER_ONLY && config.SYNC_ON_START) {
 		void syncAll().catch((error) => {
 			console.error("[sync] Initial synchronization failed", error);
 		});
@@ -64,15 +74,27 @@ server.listen(config.API_PORT, "0.0.0.0", () => {
 
 	const intervalMilliseconds = config.SYNC_INTERVAL_MINUTES * 60 * 1_000;
 
-	const syncInterval = setInterval(() => {
+	const syncInterval = config.CONSUMER_ONLY ? undefined : setInterval(() => {
 		void syncAll().catch((error) => {
 			console.error("[sync] Scheduled synchronization failed", error);
 		});
 	}, intervalMilliseconds);
+ let newsletterBusy = false;
+ const newsletterInterval = setInterval(() => {
+   if (newsletterBusy) return;
+   newsletterBusy = true;
+   void newsletterService.deliver(sendEmail,config.API_PUBLIC_URL,config.EMAIL_PROVIDER==='development')
+     .then(()=>newsletterService.cleanup())
+     .catch(()=>console.error('[newsletter] Queue unavailable'))
+     .finally(()=>{newsletterBusy=false;});
+ },5000);
+ const fundingInterval = setInterval(() => { void reconcilePendingDeposits().catch(() => console.error('[funding] Reconciliation unavailable')); },30000);
 
 	async function shutdown(signal: string): Promise<void> {
 		console.info(`[shutdown] ${signal} received`);
 		clearInterval(syncInterval);
+  clearInterval(fundingInterval);
+  clearInterval(newsletterInterval);
 		server.close(async () => {
 			await pool.end();
 			process.exit(0);

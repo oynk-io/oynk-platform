@@ -11,10 +11,10 @@ export function NotFoundPage() {
         </a>
         <p className="mt-12 text-sm font-semibold uppercase tracking-[0.2em] text-[#17735b]">Page not found</p>
         <h1 className="mt-4 text-4xl font-semibold tracking-[-0.04em] text-[#10231d] sm:text-5xl">This path doesn’t lead anywhere.</h1>
-        <p className="mx-auto mt-5 max-w-md text-base leading-7 text-[#52635d]">Return to Oynk to learn about the network, or view recorded on-chain activity.</p>
+        <p className="mx-auto mt-5 max-w-md text-base leading-7 text-[#52635d]">Return to Oynk to explore the settlement network and consumer app.</p>
         <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
           <a href="/" className="landing-button landing-button-primary"><ArrowLeft size={17} aria-hidden="true" />Back to Oynk</a>
-          <a href={import.meta.env.VITE_TRANSACTIONS_SITE_URL ?? "https://transactions.oynk.io"} className="landing-button landing-button-secondary">View activity</a>
+          <a href="/#consumer-app" className="landing-button landing-button-secondary">Meet the consumer app</a>
         </div>
       </div>
     </main>

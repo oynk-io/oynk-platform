@@ -231,7 +231,7 @@ a { color: inherit; text-decoration: none; }
 }
 
 @media (max-width: 420px) {
-  .network-node { min-width: 0; width: 136px; }
+  .network-node { min-width: 0; width: min(44%, 136px); }
   .network-node-icon { width: 32px; height: 32px; }
   .network-core { top: 45%; width: 105px; height: 105px; }
   .network-status-card { left: 4%; right: 4%; }
@@ -241,3 +241,55 @@ a { color: inherit; text-decoration: none; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; }
 }
+
+/* Updated artwork, preserving the settlement website's established layout. */
+.brand-mark{object-fit:cover;border-radius:24%;flex-shrink:0}
+.wordmark-mark{width:36px;height:36px;box-shadow:none}
+.landing-button-primary{background:#275d43}
+.landing-button-primary:hover{background:#1e4834}
+.landing-button:focus-visible,.landing-icon-button:focus-visible,.landing-nav-link:focus-visible,.landing-mobile-link:focus-visible,.footer-link:focus-visible{outline-color:#729b36}
+.skip-link{position:fixed;top:-100px;left:20px;z-index:200;background:#275d43;color:white;padding:14px;border-radius:10px}.skip-link:focus{top:12px}
+.consumer-app-section{background:#f2f5eb}
+.consumer-app-grid{display:grid;grid-template-columns:1fr 1fr;gap:64px;align-items:center}
+.consumer-app-roadmap{font-size:14px;line-height:1.85;color:#60716b;margin-top:24px;max-width:550px}
+
+.consumer-app-showcase{margin:0;min-width:0;padding:24px 30px;background:#e9eee2;border:1px solid #dce4d5;border-radius:28px;overflow:hidden}
+.consumer-showcase-heading{display:flex;justify-content:space-between;align-items:center;gap:12px;color:#687962;font-size:11px;margin-bottom:24px}
+.consumer-preview-label{display:flex;align-items:center;gap:7px;font-size:10px;font-weight:650;letter-spacing:.09em;text-transform:uppercase;color:#385a3b}
+.consumer-preview-label>span{width:6px;height:6px;border-radius:50%;background:#729b36}
+.consumer-device-stage{position:relative;isolation:isolate;display:flex;justify-content:center;padding:4px 12px 30px}
+.consumer-device-stage:before{content:"";position:absolute;z-index:-1;width:420px;height:420px;max-width:140%;border-radius:50%;border:1px solid #cfdbc4;top:70px;background:#e1e9d7}
+.consumer-device-stage:after{content:"";position:absolute;z-index:-1;width:330px;height:330px;max-width:115%;border-radius:50%;border:1px solid #f6f8f1;top:115px}
+.consumer-device{position:relative;width:min(100%,274px);padding:7px;border-radius:39px;background:#26362d;box-shadow:0 0 0 1px #52634f,0 0 0 3px #d6ddcd,0 22px 35px -15px #23372950;flex-shrink:0}
+.consumer-device:before{content:"";position:absolute;left:-3px;top:110px;width:3px;height:48px;border-radius:2px 0 0 2px;background:#52634f;box-shadow:0 60px 0 #52634f}
+.consumer-device:after{content:"";position:absolute;right:-3px;top:150px;width:3px;height:65px;border-radius:0 2px 2px 0;background:#52634f}
+.consumer-device img{display:block;width:100%;height:auto;border-radius:32px;background:#f7f8f2}
+.consumer-platforms{display:grid;grid-template-columns:1fr 1fr;gap:12px;max-width:340px;margin:0 auto}
+.consumer-platform{display:flex;align-items:center;justify-content:center;gap:11px;padding:12px 16px;border:1px solid #cfdbc4;border-radius:12px;background:#f7f9f2;color:#27513a}
+.consumer-platform>span{display:grid;gap:2px}.consumer-platform small{font-size:9px;letter-spacing:.09em;text-transform:uppercase;color:#667760}.consumer-platform strong{font-size:16px;line-height:1.2;font-weight:650}
+.consumer-app-showcase figcaption>p{text-align:center;font-size:10px;line-height:1.7;color:#65755f;max-width:320px;margin:14px auto 0}
+@media(max-width:767px){.consumer-app-grid{grid-template-columns:1fr;gap:28px}.consumer-app-showcase{padding:22px 20px;max-width:480px;width:100%;justify-self:center}.consumer-device{width:min(100%,260px)}.consumer-showcase-heading{font-size:10px}.consumer-platform{padding:12px 10px;gap:8px}.consumer-platform strong{font-size:15px}}
+
+.newsletter-feature{display:flex;align-items:center;justify-content:space-between;gap:40px;padding:clamp(28px,5vw,64px);border-radius:28px;background:#153e32;color:#fff}
+.newsletter-copy{max-width:620px}
+.newsletter-copy .landing-eyebrow{color:#b9d98d}
+.newsletter-copy .landing-section-copy{color:#c4d4cc}
+.newsletter-action{display:flex;flex-direction:column;align-items:center;gap:24px;flex-shrink:0;max-width:100%;text-align:center}
+.newsletter-icon{display:grid;place-items:center;width:64px;height:64px;border:1px solid #567465;border-radius:20px;color:#cee3b0;background:#ffffff08}
+.newsletter-pending{font-size:14px;line-height:1.6;color:#d2dfd7;max-width:210px;margin:0}
+@media(max-width:767px){.newsletter-feature{flex-direction:column;align-items:flex-start;gap:28px}.newsletter-action{align-items:flex-start;text-align:left}.newsletter-icon{display:none}.newsletter-pending{max-width:none}}
+.newsletter-action{width:440px;flex-shrink:1;align-items:flex-start;text-align:left}
+.newsletter-form{position:relative;width:100%}
+.newsletter-form>label{display:block;font-size:13px;margin-bottom:10px}
+.newsletter-input-row{display:flex;gap:10px;flex-wrap:wrap}
+.newsletter-input-row input{flex:1;min-width:0;width:100%;min-height:50px;padding:12px 14px;border:1px solid #8ea79b;border-radius:10px;background:#fff;color:#173b2c;font-size:16px}
+.newsletter-input-row button{flex-shrink:0}
+.newsletter-input-row button:disabled{opacity:.65;cursor:wait}
+.newsletter-form .newsletter-consent{display:flex;align-items:flex-start;gap:10px;line-height:1.6;margin:16px 0 0;color:#d0ded6;font-size:12px;cursor:pointer;padding:4px 0}
+.newsletter-consent input{flex-shrink:0;width:20px;height:20px;margin:0;accent-color:#b9d98d}
+.newsletter-honeypot{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}
+.newsletter-error{font-size:13px;color:#ffe0d7;line-height:1.6;margin-top:12px}
+.newsletter-success{display:flex;align-items:flex-start;gap:12px;font-size:15px;line-height:1.7;color:#e0eddf}
+.newsletter-success svg{flex-shrink:0;margin-top:3px}
+@media(max-width:1023px){.newsletter-feature{flex-direction:column;align-items:flex-start}.newsletter-action{width:100%}}
+@media(max-width:480px){.newsletter-input-row{flex-direction:column}.newsletter-input-row button{justify-content:center}}
