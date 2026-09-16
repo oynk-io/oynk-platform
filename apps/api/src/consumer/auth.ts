@@ -7,6 +7,8 @@ export async function consumerIdentity(authorization: string | undefined): Promi
  const { payload } = await verifier.verify(authorization.slice(7));
  const network = payload.network;
  const wallet = payload.activeWallet;
- if (payload.type !== 'access' || payload.clientId !== funding.SOCKETFI_CLIENT_ID || !payload.sub || (network !== 'TESTNET' && network !== 'PUBLIC') || typeof wallet !== 'string' || !/^C[A-Z2-7]{55}$/.test(wallet) || !payload.wallet || (payload.wallet as Record<string, unknown>)[network] !== wallet) throw new Error('Invalid smart-account session.');
+ const nativeProjectToken = payload.type === 'access' && payload.clientId === funding.SOCKETFI_CLIENT_ID;
+ const evmToken = payload.type === 'socketfi_auth' && payload.aud === 'socketfi-api';
+ if ((!nativeProjectToken && !evmToken) || !payload.sub || (network !== 'TESTNET' && network !== 'PUBLIC') || typeof wallet !== 'string' || !/^C[A-Z2-7]{55}$/.test(wallet) || !payload.wallet || (payload.wallet as Record<string, unknown>)[network] !== wallet) throw new Error('Invalid smart-account session.');
  return { subject: payload.sub, clientId: funding.SOCKETFI_CLIENT_ID, network, wallet };
 }

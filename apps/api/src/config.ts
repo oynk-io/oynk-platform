@@ -122,6 +122,10 @@ const schema = z.object({
 	EMAIL_FROM_NAME: z.string().min(1).default("Oynk"),
 	EMAIL_FROM_ADDRESS: z.string().email().default("no-reply@oynk.io"),
 	EMAIL_REPLY_TO: z.string().email().default("support@oynk.io"),
+	AFRICASTALKING_USERNAME: z.string().default("sandbox"),
+	AFRICASTALKING_API_KEY: z.string().default(""),
+	AFRICASTALKING_SENDER_ID: z.string().default("Oynk"),
+	AFRICASTALKING_API_URL: z.string().url().default("https://api.africastalking.com/version1/messaging"),
 });
 
 export const config = schema.parse(process.env);

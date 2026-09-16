@@ -10,7 +10,9 @@ import { paystack } from './paystack.js';
 export class FundingError extends Error { constructor(message: string, readonly status = 400) { super(message); } }
 const detailsSchema = z.object({
  firstName: z.string().trim().min(2).max(100), lastName: z.string().trim().min(2).max(100),
- email: z.email().max(254).transform(x => x.toLowerCase()), phone: z.string().regex(/^\+234\d{10}$/),
+ // Email is optional for Tier 1. Normalize an omitted value to an empty
+ // string so downstream providers never receive `undefined` unexpectedly.
+ email: z.union([z.email().max(254).transform(x => x.toLowerCase()), z.literal('')]).default(''), phone: z.string().regex(/^\+234\d{10}$/).optional(),
  addressLine: z.string().trim().min(5).max(240), city: z.string().trim().min(2).max(100), state: z.string().trim().min(2).max(100), country: z.literal('NG'),
 });
 type Account = { id: string; wallet: string; network: string; tier: 1|2|3; profile: z.infer<typeof detailsSchema> };
@@ -27,7 +29,13 @@ export async function accountFor(identity: Identity, db: Pick<PoolClient,'query'
  return account;
 }
 export async function saveProfile(identity: Identity, raw: unknown) {
- const parsed = detailsSchema.safeParse(raw);
+ const input = raw && typeof raw === 'object' ? { ...(raw as Record<string, unknown>) } : raw;
+ if (input && typeof input === 'object' && typeof (input as Record<string, unknown>).email !== 'string') (input as Record<string, unknown>).email = '';
+ if (input && typeof input === 'object' && !(input as Record<string, unknown>).phone) {
+  const linked = await pool.query('SELECT phone FROM consumer_phone_links WHERE subject=$1 AND client_id=$2 AND network=$3 LIMIT 1', [identity.subject, identity.clientId, identity.network]);
+  if (linked.rows[0]?.phone) (input as Record<string, unknown>).phone = linked.rows[0].phone;
+ }
+ const parsed = detailsSchema.safeParse(input);
  if (!parsed.success) throw new FundingError('Please review your personal details.');
  return transaction(async db => {
   await db.query(`INSERT INTO consumer_accounts(id,subject,client_id,network,wallet,profile) VALUES($1,$2,$3,$4,$5,$6)

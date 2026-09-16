@@ -46,7 +46,7 @@ export class SocketFiTokenVerifier {
   let key = this.key && this.key.expiresAt > this.now() ? this.key : await this.refresh();
   if (header.kid && key.kid && header.kid !== key.kid) key = await this.refresh(key);
   const verify = (key: Key) => jwtVerify(token,key.imported,{
-   algorithms:['RS256'],issuer:'https://socket.fi',audience:this.config.clientId,
+   algorithms:['RS256'],issuer:'https://socket.fi',audience:[this.config.clientId,'socketfi-api'],
    requiredClaims:['sub','exp','iat'],maxTokenAge:'65m', currentDate:new Date(this.now()),
   });
   try { return await verify(key); }

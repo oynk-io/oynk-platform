@@ -3,12 +3,16 @@ import { consumerIdentity } from './auth.js';
 import { stellarBalance } from './stellarBalance.js';
 import { validSignature } from './paystack.js';
 import { accountFor, createQuote, fundingStatus, FundingError, getDeposit, reconcile, recoverDeposit, saveProfile, startDeposit } from './service.js';
+import { PhoneAuthError, linkVerifiedPhone, startPhoneChallenge, verifyPhoneChallenge } from './phoneAuth.js';
 export const consumerRouter = express.Router();
 consumerRouter.use((_req,res,next) => { res.setHeader('Cache-Control','no-store'); next(); });
+consumerRouter.post('/auth/phone/start', async (req,res,next) => { try { res.json(await startPhoneChallenge(req.body?.phone, req.ip)); } catch (e) { next(e); } });
+consumerRouter.post('/auth/phone/verify', async (req,res,next) => { try { const result = await verifyPhoneChallenge(req.body?.challengeId, req.body?.code); if (!result) throw new PhoneAuthError('That code is incorrect or expired.', 401); res.json({ verified: true, ...result }); } catch (e) { next(e); } });
 consumerRouter.use(async (req,res,next) => {
  try { res.locals.identity = await consumerIdentity(req.headers.authorization); next(); }
  catch { res.status(401).json({message:'Sign in again to access your account.'}); }
 });
+consumerRouter.post('/auth/phone/link', async (req,res,next) => { try { res.json(await linkVerifiedPhone(res.locals.identity, req.body?.challengeId)); } catch (e) { next(e); } });
 consumerRouter.get('/profile', async (_req,res,next) => { try { const a = await accountFor(res.locals.identity); res.json({profile:a.profile,tier:a.tier}); } catch(e) { next(e); } });
 consumerRouter.get('/balance', async (_req,res) => {
  try { res.json(await stellarBalance(res.locals.identity)); }
@@ -29,6 +33,7 @@ consumerRouter.get('/deposits/:reference',async (req,res,next) => {
  } catch(e) { next(e); }
 });
 consumerRouter.use((err: unknown,_req:express.Request,res:express.Response,_next:express.NextFunction) => {
+ if (err instanceof PhoneAuthError) { res.status(err.status).json({message:err.message}); return; }
  if (err instanceof FundingError) { res.status(err.status).json({message:err.message}); return; }
  // Never echo provider payloads, SQL errors, tokens or personal data.
  res.status(503).json({message:'The deposit service could not finish this request. Refresh to check its status before trying again.'});
