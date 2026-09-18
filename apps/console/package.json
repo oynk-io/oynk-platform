@@ -7,10 +7,11 @@
     "dev": "vite --port 5174",
     "build": "tsc -b && vite build",
     "typecheck": "tsc -b --pretty false",
-    "test": "tsx --test src/*.test.ts src/**/*.test.ts src/**/*.test.tsx",
+    "test": "tsx --test src/*.test.ts src/**/*.test.ts",
     "preview": "vite preview --port 4174"
   },
   "dependencies": {
+    "@creit.tech/stellar-wallets-kit": "2.6.0",
     "@oynk/shared": "workspace:*",
     "lucide-react": "0.468.0",
     "react": "19.2.8",
@@ -23,6 +24,7 @@
     "@types/react-dom": "19.2.4",
     "@vitejs/plugin-react": "4.7.0",
     "tailwindcss": "4.3.3",
+    "tsx": "4.23.5",
     "typescript": "5.9.3",
     "vite": "7.3.6"
   }

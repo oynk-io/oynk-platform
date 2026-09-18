@@ -1,5 +1,16 @@
 import type { BusinessComplianceProfile, OtpChallengeResponse, SessionResponse } from "@oynk/shared";
 
+export type RampTransaction={id:string;reference:string;direction:'ON_RAMP'|'OFF_RAMP';state:string;intentState:string|null;approvalState:string;riskState:string;fiatCurrency:string|null;fiatAmountMinor:string|null;usdcAmountAtomic:string|null;provider:string|null;providerReference:string|null;stellarTransactionHash:string|null;failureCode:string|null;createdAt:string;updatedAt:string};
+export type RampEvent={sequence:number;eventType:string;fromState:string|null;toState:string|null;actorType:string;actorReference:string|null;requestId:string|null;details:Record<string,unknown>;createdAt:string};
+export type RampTransactionDetail={transaction:RampTransaction&{walletAddress:string;network:string;providerStatus:string|null;failureReason:string|null;completedAt:string|null;policyVersion:number;policySnapshot:Record<string,unknown>;metadata:Record<string,unknown>};events:RampEvent[];policyDecisions:Array<{outcome:string;reasonCodes:string[];createdAt:string}>;approvals:Array<{action:string;operatorUserId:string;note:string|null;createdAt:string}>;executionAttempts:Array<{operation:string;attemptNumber:number;state:string;providerReference:string|null;stellarTransactionHash:string|null;errorCode:string|null;startedAt:string|null;finishedAt:string|null;createdAt:string}>};
+export type RampPolicy={id:string;direction:'ON_RAMP'|'OFF_RAMP';enabled:boolean;manualThresholdUsdcAtomic:string;cumulativeEnabled:boolean;cumulativeThresholdUsdcAtomic:string|null;cumulativeWindowSeconds:number|null;additionalRules:Record<string,unknown>;version:number;updatedAt?:string};
+export type ProtocolOverview={network:'TESTNET'|'PUBLIC';asset:{symbol:string;contract:string;decimals:number};fetchedAt:string;latestLedger:number|null;contracts:Record<string,{address:string;status:string;explorerUrl:string}>;balances:Record<string,{status:string;atomic:string|null}>;vault:{totalAtomic:string|null;reservedAtomic:string|null;availableAtomic:string|null;bufferAtomic:string|null;userAvailableAtomic:string|null;status:string};pool:{status:string;totalContributedAtomic:string|null;totalUnitsAtomic:string|null;depositorCount:number|null;pendingRedemptionsAtomic?:string|null;rwaDeployedAtomic?:string|null;maxRwaUtilizationBps?:number|null};rates:{status:string;onrampFiatPerUsdc?:string;offrampFiatPerUsdc?:string;validUntilLedger?:number;updatedLedger?:number;version?:string};rebalancing:{status:string;provider:string|null;targetAtomic:string|null;differenceAtomic:string|null;recommendation:string}};
+export type RebalanceOrder={id:string;network:string;requestId:string;direction:string;amountAtomic:string;minimumFillAtomic:string;state:string;stellarTransactionHash:string;createdAt?:string};
+export type SettlementLookup={network:'TESTNET'|'PUBLIC';latestLedger:number;requestId:string;settlement:Record<string,unknown>};
+export type SettlementFillLookup={network:'TESTNET'|'PUBLIC';latestLedger:number;requestId:string;fillId:string;fill:Record<string,unknown>};
+export type CorridorLookup={network:'TESTNET'|'PUBLIC';latestLedger:number;sourceCurrency:number;destinationCurrency:number;rate:Record<string,unknown>};
+export type ProviderLookup={network:'TESTNET'|'PUBLIC';latestLedger:number;operator:string;provider:Record<string,unknown>};
+
 const API_URL=(import.meta.env?.VITE_API_URL??"").replace(/\/$/,"");
 let activeCsrfToken="";
 export class ApiError extends Error { constructor(message:string,public readonly status:number,public readonly code?:string,public readonly fieldErrors?:Record<string,string>,public readonly details?:unknown,public readonly requestId?:string){super(message);this.name="ApiError";} }
@@ -19,4 +30,17 @@ export const api={
   logout:()=>request<void>("/api/auth/logout",{method:"POST",body:"{}"}),
   businessCompliance:()=>request<BusinessComplianceProfile>("/api/compliance/business"),
   saveBusinessCompliance:(profile:Omit<BusinessComplianceProfile,"status"|"updatedAt">)=>request<BusinessComplianceProfile>("/api/compliance/business",{method:"PUT",body:JSON.stringify(profile)}),
+  protocol:()=>request<ProtocolOverview>('/api/control/ramps/protocol'),
+  createRebalanceOrder:(body:Record<string,string>)=>request<RebalanceOrder>('/api/control/ramps/rebalancing/orders',{method:'POST',headers:{'Idempotency-Key':crypto.randomUUID()},body:JSON.stringify(body)}),
+  rampMetrics:()=>request<{generatedAt:string;series:Array<{direction:string;state:string;approval_state:string;count:number;usdcAmountAtomic:string}>}>('/api/control/ramps/metrics'),
+  rampTransactions:(filters:Record<string,string|undefined>={})=>{const query=new URLSearchParams(Object.entries(filters).filter((entry):entry is [string,string]=>Boolean(entry[1])));return request<{transactions:RampTransaction[]}>(`/api/control/ramps/transactions?${query}`);},
+  rampTransaction:(id:string)=>request<RampTransactionDetail>(`/api/control/ramps/transactions/${encodeURIComponent(id)}`),
+  rampApprovals:()=>request<{transactions:RampTransaction[]}>('/api/control/ramps/approvals'),
+  rampPolicies:()=>request<{policies:RampPolicy[]}>('/api/control/ramps/policies'),
+  decideRamp:(id:string,action:'approve'|'reject',note?:string)=>request<RampTransaction>(`/api/control/ramps/transactions/${encodeURIComponent(id)}/${action}`,{method:'POST',body:JSON.stringify({note})}),
+  updateRampPolicy:(direction:string,body:Record<string,unknown>)=>request<RampPolicy>(`/api/control/ramps/policies/${direction}`,{method:'PUT',body:JSON.stringify(body)}),
+  settlement:(requestId:string)=>request<SettlementLookup>(`/api/control/ramps/settlements/${encodeURIComponent(requestId)}`),
+  settlementFill:(requestId:string,fillId:string)=>request<SettlementFillLookup>(`/api/control/ramps/settlements/${encodeURIComponent(requestId)}/fills/${encodeURIComponent(fillId)}`),
+  corridor:(sourceCurrency:number,destinationCurrency:number)=>request<CorridorLookup>(`/api/control/ramps/corridors/${sourceCurrency}/${destinationCurrency}`),
+  provider:(operator:string)=>request<ProviderLookup>(`/api/control/ramps/providers/${encodeURIComponent(operator)}`),
 };

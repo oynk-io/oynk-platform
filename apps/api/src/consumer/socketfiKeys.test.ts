@@ -33,6 +33,15 @@ test('rotated signatures refresh once; forged tokens and unavailable keys fail c
  await assert.rejects(()=>verifier.verify(forged));assert.equal(calls,3);
 });
 
+test('accepts small issuer clock drift and rejects tokens issued too far in the future',async()=>{
+ const keys=generateKeyPairSync('rsa',{modulusLength:2048});const now=Date.now();
+ const verifier=new SocketFiTokenVerifier({apiUrl:'https://api.socket.fi',clientId:'fixture',clientSecret:'secret'},async()=>Response.json({alg:'RS256',issuer:'https://socket.fi',kid:'key-1',publicKey:keys.publicKey.export({type:'spki',format:'pem'})}),()=>now);
+ const token=(offsetSeconds:number)=>new SignJWT({}).setProtectedHeader({alg:'RS256',kid:'key-1'}).setSubject('user').setIssuer('https://socket.fi').setAudience('fixture').setIssuedAt(Math.floor(now/1000)+offsetSeconds).setExpirationTime(Math.floor(now/1000)+3600).sign(keys.privateKey);
+ await verifier.verify(await token(20));
+ const tooFarInFuture=await token(31);
+ await assert.rejects(()=>verifier.verify(tooFarInFuture));
+});
+
 test('key discovery rejects redirects, wrong metadata and unsafe origins',async()=>{
  for(const body of [{alg:'HS256',issuer:'https://socket.fi',publicKey:'bad'},{alg:'RS256',issuer:'https://other.invalid',publicKey:'bad'}]) {
   const verifier=new SocketFiTokenVerifier({apiUrl:'https://api.socket.fi',clientId:'fixture',clientSecret:'secret'},async()=>Response.json(body));

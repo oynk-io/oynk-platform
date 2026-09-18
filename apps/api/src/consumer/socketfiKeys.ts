@@ -48,6 +48,9 @@ export class SocketFiTokenVerifier {
   const verify = (key: Key) => jwtVerify(token,key.imported,{
    algorithms:['RS256'],issuer:'https://socket.fi',audience:[this.config.clientId,'socketfi-api'],
    requiredClaims:['sub','exp','iat'],maxTokenAge:'65m', currentDate:new Date(this.now()),
+   // Permit bounded infrastructure clock drift without weakening expiry,
+   // issuer, audience, algorithm, signature, or maximum-age validation.
+   clockTolerance:30,
   });
   try { return await verify(key); }
   catch (error) {

@@ -30,9 +30,6 @@ services:
       API_PORT: "4020"
     ports:
       - "4020:4020"
-    # Host networking lets the API reach Postgres at 127.0.0.1:5433
-    # exactly as configured in the repo-root .env. Requires Linux (VPS).
-    network_mode: host
     restart: unless-stopped
     depends_on:
       db:

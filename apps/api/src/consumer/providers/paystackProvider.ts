@@ -1,0 +1,20 @@
+import { paystack } from '../paystack.js';
+import { paystackDomain } from '../settings.js';
+import { funding } from '../settings.js';
+import type { BankTransferInstructions, FiatPayoutProvider, FiatRampProvider, VerifiedFiatReceipt } from './types.js';
+
+function instructions(data:Record<string,any>,reference:string):BankTransferInstructions{if(data.reference!==reference||data.status!=='pending_bank_transfer'||typeof data.account_number!=='string'||!/^\d{10}$/.test(data.account_number)||typeof data.account_name!=='string'||typeof data.bank?.name!=='string'||!Number.isFinite(Date.parse(data.account_expires_at)))throw new Error('Invalid bank transfer instructions');return{accountNumber:data.account_number,accountName:data.account_name,bankName:data.bank.name,expiresAt:data.account_expires_at};}
+export const paystackRampProvider:FiatRampProvider={id:'PAYSTACK',environment:paystackDomain,configured:/^sk_(test|live)_/.test(funding.PAYSTACK_SECRET_KEY),
+ async createBankTransfer(input){const data=await paystack('/charge',{email:input.email,amount:input.amountMinor,currency:'NGN',reference:input.reference,metadata:{oynk_account_id:input.accountId},bank_transfer:{account_expires_at:input.expiresAt}});return instructions(data,input.reference);},
+ async recoverBankTransfer(reference){const data=await paystack(`/charge/${encodeURIComponent(reference)}`);return data.status==='pending_bank_transfer'?instructions(data,reference):null;},
+ async verify(reference){const data=await paystack(`/transaction/verify/${encodeURIComponent(reference)}`);return{reference:data.reference,providerReference:String(data.id??''),currency:data.currency,amountMinor:data.amount,feeMinor:data.fees,paidAt:data.paid_at,status:data.status==='success'?'success':(['failed','abandoned'].includes(data.status)?'failed':'pending'),channel:data.channel} as VerifiedFiatReceipt;}
+};
+
+function payoutStatus(value:unknown):'pending'|'processing'|'success'|'failed'{const status=String(value??'').toLowerCase();if(status==='success')return'success';if(['failed','reversed','abandoned'].includes(status))return'failed';return status==='pending'?'pending':'processing';}
+export const paystackPayoutProvider:FiatPayoutProvider={id:'PAYSTACK',environment:paystackDomain,configured:/^sk_(test|live)_/.test(funding.PAYSTACK_SECRET_KEY),
+ async listBanks(){const data=await paystack('/bank?country=nigeria&currency=NGN&type=nuban');if(!Array.isArray(data))throw new Error('Invalid bank list');return data.filter(item=>item&&typeof item.name==='string'&&typeof item.code==='string'&&item.active!==false).map(item=>({name:item.name,code:item.code}));},
+ async resolveDestination(input){const data=await paystack(`/bank/resolve?account_number=${encodeURIComponent(input.accountNumber)}&bank_code=${encodeURIComponent(input.bankCode)}`);if(typeof data.account_name!=='string'||typeof data.account_number!=='string')throw new Error('Invalid resolved account');return{accountName:data.account_name,accountNumber:data.account_number,bankCode:input.bankCode};},
+ async createDestination(input){const data=await paystack('/transferrecipient',{type:'nuban',name:input.name,account_number:input.accountNumber,bank_code:input.bankCode,currency:input.currency});if(typeof data.recipient_code!=='string')throw new Error('Invalid transfer recipient');return{destinationToken:data.recipient_code};},
+ async createPayout(input){const data=await paystack('/transfer',{source:'balance',amount:input.amountMinor,reference:input.reference,recipient:input.destinationToken,currency:input.currency,reason:'Oynk USDC off-ramp'});const providerReference=String(data.reference??input.reference);return{providerReference,status:payoutStatus(data.status)};},
+ async verifyPayout(providerReference){const data=await paystack(`/transfer/verify/${encodeURIComponent(providerReference)}`);return{providerReference:String(data.reference??providerReference),status:payoutStatus(data.status),paidAt:typeof data.transferred_at==='string'?data.transferred_at:undefined};}
+};

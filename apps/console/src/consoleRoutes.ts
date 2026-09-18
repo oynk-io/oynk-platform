@@ -31,12 +31,16 @@ const partnerRoutes = [
 ] as const;
 
 const internalRoutes = [
-  ["home", "Home", "Internal operations", "Review protected platform operations and queues.", "No items require attention", "Review queues and operational activity will appear here as records are created."],
+  ["home", "Overview", "Protocol operations", "Monitor contract state, balances, liquidity and protected operations.", "No items require attention", "Review queues and operational activity will appear here as records are created."],
+  ["protocol", "Protocol", "Protocol state", "Review Soroban contracts, balances, pool statistics and ramp rates.", "Protocol state unavailable", "Contract state will appear when the configured network is reachable."],
+  ["ramps", "Transactions", "Ramp transactions", "Search and inspect on-ramp and off-ramp transaction lifecycles.", "No ramp transactions", "New on-ramp and off-ramp records will appear here."],
+  ["approvals", "Approvals", "Manual approvals", "Review transactions held by configurable policy controls.", "Nothing needs attention", "Transactions above configured thresholds will appear here."],
+  ["policies", "Policies", "Ramp thresholds", "Manage automatic processing and manual-review thresholds.", "No ramp policies", "On-ramp and off-ramp policy configuration will appear here."],
   ["applications", "Applications", "Applications", "Review submitted business and partner applications.", "No applications in this queue", "New applications will appear here when they are submitted for review."],
   ["businesses", "Businesses", "Businesses", "Review registered business organizations and account state.", "No businesses found", "Business organizations will appear here after registration."],
   ["partners", "Partners", "Settlement partners", "Review partner organizations, capabilities, and activation.", "No partners found", "Settlement partner applications will appear here after registration."],
   ["payments", "Payments", "Payment operations", "Review payment activity and operational exceptions.", "No payment activity", "Platform payment records will appear here when payment processing is connected."],
-  ["settlements", "Settlements", "Settlement operations", "Review settlement lifecycle and exceptions.", "No settlement activity", "Verified settlement requests will appear here when settlement APIs are connected."],
+  ["settlements", "Settlement network", "Settlement network", "Inspect provider orders, partial fills, corridor rates and registered-provider capacity from Soroban.", "No settlement selected", "Enter a request, fill, corridor or provider identifier to inspect its contract state."],
   ["terminals", "Terminals", "Terminal operations", "Review applications, inventory, and device incidents.", "No terminal records", "Terminal applications and managed devices will appear here as they are registered."],
   ["risk-alerts", "Risk alerts", "Risk alerts", "Review operational and compliance signals.", "No open risk alerts", "Risk signals requiring operator review will appear here."],
   ["audit-logs", "Audit logs", "Audit logs", "Review protected account and operator actions.", "No audit events available", "Authorized audit events will appear here as platform actions are recorded."],

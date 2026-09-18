@@ -16,6 +16,8 @@ import { reconcilePendingDeposits } from './consumer/service.js';
 
 import { newsletterRouter, newsletterService } from './newsletter/routes.js';
 import { sendEmail } from './email/emailService.js';
+import { rampControlRouter } from './ramp/routes.js';
+import { processRampExecutions } from './ramp/worker.js';
 
 const app = express();
 const server = http.createServer(app);
@@ -60,6 +62,9 @@ if (!config.CONSUMER_ONLY) {
 }
 app.use('/api/consumer',consumerRouter);
 app.use('/api/newsletter',newsletterRouter);
+// Control APIs remain available in consumer-only deployments, but are guarded
+// by internal-organization RBAC and CSRF on every mutation.
+app.use('/api/control/ramps',rampControlRouter);
 
 server.listen(config.API_PORT, "0.0.0.0", () => {
 	console.info(
@@ -89,11 +94,13 @@ server.listen(config.API_PORT, "0.0.0.0", () => {
      .finally(()=>{newsletterBusy=false;});
  },5000);
  const fundingInterval = setInterval(() => { void reconcilePendingDeposits().catch(() => console.error('[funding] Reconciliation unavailable')); },30000);
+ const rampExecutionInterval=setInterval(()=>{void processRampExecutions().catch(()=>console.error('[ramp] Execution unavailable'));},config.RAMP_EXECUTION_INTERVAL_MS);
 
 	async function shutdown(signal: string): Promise<void> {
 		console.info(`[shutdown] ${signal} received`);
 		clearInterval(syncInterval);
   clearInterval(fundingInterval);
+  clearInterval(rampExecutionInterval);
   clearInterval(newsletterInterval);
 		server.close(async () => {
 			await pool.end();

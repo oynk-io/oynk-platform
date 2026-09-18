@@ -1,5 +1,6 @@
 import { LandingPage } from "./pages/LandingPage";
 import { NotFoundPage } from "./pages/NotFoundPage";
+import { ReferralPage } from "./pages/ReferralPage";
 
 function updateMetadata(title: string, description: string, themeColor: string) {
   document.title = title;
@@ -8,6 +9,11 @@ function updateMetadata(title: string, description: string, themeColor: string) 
 }
 
 export default function Router() {
+  const referralCode = window.location.pathname.slice(1).toUpperCase();
+  if (/^[23456789ABCDEFGHJKLMNPQRSTUVWXYZ]{10}$/.test(referralCode)) {
+    updateMetadata("Your Oynk invite", "You have been invited to join Oynk.", "#f7f8f2");
+    return <ReferralPage code={referralCode} />;
+  }
   switch (window.location.pathname) {
     case "/":
       updateMetadata(

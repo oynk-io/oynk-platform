@@ -6,7 +6,7 @@ import { SignJWT } from 'jose';
 
 test('funding database: identity, concurrency, exact amount, replay and reconciliation', {skip:!process.env.FUNDING_TEST_DATABASE_URL}, async () => {
  const url = new URL(process.env.FUNDING_TEST_DATABASE_URL!);
- if (url.hostname!=='127.0.0.1' || url.port!=='55439' || url.pathname!=='/oynk_funding_test') throw new Error('Use only the isolated funding test database.');
+ if (url.hostname!=='127.0.0.1' || !['5433','55439'].includes(url.port) || url.pathname!=='/oynk_funding_test') throw new Error('Use only the isolated funding test database.');
  const schema = `funding_test_${randomUUID().replaceAll('-','')}`;
  url.searchParams.set('options',`-c search_path=${schema}`);
  process.env.DATABASE_URL=url.toString(); process.env.PAYSTACK_SECRET_KEY='sk_test_fixture_not_a_key';
@@ -18,9 +18,13 @@ test('funding database: identity, concurrency, exact amount, replay and reconcil
  try {
   globalThis.fetch=async () => Response.json({alg:'RS256',issuer:'https://socket.fi',kid:'fixture-key',publicKey:keys.publicKey.export({type:'spki',format:'pem'}).toString()});
   await pool.query(`CREATE SCHEMA ${schema}`);
+  await pool.query(await readFile(new URL('../db/migrations/002_identity_auth.sql',import.meta.url),'utf8'));
   await pool.query(await readFile(new URL('../db/migrations/007_consumer_funding.sql',import.meta.url),'utf8'));
-  const identity={subject:'fixture',clientId:'sf_client_live_u3zqxglr2dhozi7z5z73o3wchwkm',network:'TESTNET' as const,wallet:'CBIELTK6YBZJU5UP2WWQEUCYKLPU6AUNZ2BQ4WWFEIE3USCIHMXQDAMA'};
-  const token=await new SignJWT({type:'access',clientId:identity.clientId,network:identity.network,activeWallet:identity.wallet,wallet:{TESTNET:identity.wallet}}).setProtectedHeader({alg:'RS256'}).setIssuer('https://socket.fi').setAudience(identity.clientId).setSubject(identity.subject).setIssuedAt().setExpirationTime('1h').sign(keys.privateKey);
+  await pool.query(await readFile(new URL('../db/migrations/012_ramp_control.sql',import.meta.url),'utf8'));
+  await pool.query(await readFile(new URL('../db/migrations/014_harden_ramp_audit.sql',import.meta.url),'utf8'));
+  await pool.query(await readFile(new URL('../db/migrations/015_deposit_failures.sql',import.meta.url),'utf8'));
+  const identity={subject:'fixture',clientId:'sf_client_live_u3zqxglr2dhozi7z5z73o3wchwkm',network:'TESTNET' as const,wallet:'CBIELTK6YBZJU5UP2WWQEUCYKLPU6AUNZ2BQ4WWFEIE3USCIHMXQDAMA',authMethod:'passkey' as const};
+  const token=await new SignJWT({type:'access',clientId:identity.clientId,network:identity.network,activeWallet:identity.wallet,wallet:{TESTNET:identity.wallet},authMethods:{passkey:true,evm:false}}).setProtectedHeader({alg:'RS256'}).setIssuer('https://socket.fi').setAudience(identity.clientId).setSubject(identity.subject).setIssuedAt().setExpirationTime('1h').sign(keys.privateKey);
   assert.deepEqual(await consumerIdentity(`Bearer ${token}`),identity);
   await assert.rejects(()=>consumerIdentity(`Bearer ${token.slice(0,-10)}abcdefghij`));
   const raw=Buffer.from('{"event":"charge.success"}'); const sig=createHmac('sha512','sk_test_fixture_not_a_key').update(raw).digest('hex');
