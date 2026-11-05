@@ -38,6 +38,17 @@ a { color: inherit; text-decoration: none; }
 .referral-note { display: flex; align-items: flex-start; justify-content: center; gap: .45rem; margin-top: 1rem; color: #6a7974; font-size: .75rem; line-height: 1.5; }.referral-note svg { flex: none; margin-top: .12rem; color: #17735b; }
 .referral-actions { display: flex; justify-content: center; flex-wrap: wrap; gap: .7rem; margin-top: 1.8rem; }
 .referral-footer { margin-top: 1.2rem; color: #6d7c76; font-size: .72rem; }
+.account-deletion-page { min-height: 100vh; display: grid; place-items: center; background: radial-gradient(circle at 85% 5%, rgba(86,153,123,.16), transparent 30%), #f7f8f2; color: #10231d; color-scheme: light; padding: 2rem 1rem; }
+.account-deletion-card { width: min(100%, 620px); border: 1px solid #d7e0da; border-radius: 2rem; background: rgba(255,255,255,.95); padding: clamp(1.6rem,6vw,3.25rem); box-shadow: 0 28px 75px rgba(30,64,52,.12); }
+.account-deletion-icon { display: grid; width: 54px; height: 54px; place-items: center; margin-top: 2.5rem; border-radius: 18px; background: #f9e9e6; color: #9b342b; }
+.account-deletion-card .landing-eyebrow { margin-top: 1.25rem; }
+.account-deletion-card h1 { margin: .7rem 0 0; font-size: clamp(2rem,7vw,3.25rem); font-weight: 650; line-height: 1.03; letter-spacing: -.05em; }
+.account-deletion-card > p:not(.landing-eyebrow):not(.account-deletion-note) { margin-top: 1.2rem; color: #586a63; line-height: 1.7; }
+.account-deletion-steps { display: grid; gap: .75rem; margin-top: 1.6rem; }
+.account-deletion-steps > div { display: flex; gap: .85rem; align-items: flex-start; border: 1px solid #dbe4de; border-radius: 1rem; background: #f7faf5; padding: 1rem; color: #17735b; }
+.account-deletion-steps span, .account-deletion-steps strong, .account-deletion-steps small { display: block; }.account-deletion-steps span { flex: 1; color: #213c33; }.account-deletion-steps small { margin-top: .3rem; color: #65766f; line-height: 1.5; }
+.account-deletion-action { width: 100%; margin-top: 1.2rem; }
+.account-deletion-note { margin-top: 1.25rem; border-left: 3px solid #e8765a; padding-left: .9rem; color: #697871; font-size: .78rem; line-height: 1.65; }
 .landing-container { width: min(100% - 2rem, 1240px); margin-inline: auto; }
 .landing-header {
   position: sticky;

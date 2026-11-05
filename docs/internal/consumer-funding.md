@@ -1,4 +1,6 @@
-# Oynk consumer funding
+# Oynk consumer funding (historical Paystack design)
+
+> This document describes the earlier Paystack temporary-account flow. The current Oynk Pay account, fiat-tier, and VFD settlement source of truth is `docs/internal/vfd-quick-pay.md`; ramp execution details are in `docs/internal/vfd-ramps.md`.
 
 The initial fiat flow uses Paystack **Pay with Transfer**, one temporary account per payment. No permanent DVA is generated during onboarding. No conversion contract, USDC credit, payout, or fiat-to-USDC settlement is implemented. Confirmed naira receipts remain separate from the on-chain USDC balance.
 

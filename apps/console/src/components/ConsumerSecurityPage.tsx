@@ -1,0 +1,22 @@
+import {useCallback,useEffect,useState} from 'react';
+import {KeyRound,RefreshCw,ShieldCheck} from 'lucide-react';
+import {api} from '../api';
+import type {OrganizationSummary} from '@oynk/shared';
+
+type Request={id:string;kind:'LOST_DEVICE'|'ACCOUNT_CLOSURE';state:string;handle:string|null;network:string;wallet:string;created_at:string};
+export function ConsumerSecurityPage({organization}:{organization:OrganizationSummary}){
+ const [items,setItems]=useState<Request[]>([]),[loading,setLoading]=useState(true),[error,setError]=useState(''),[selected,setSelected]=useState<Request|null>(null),[note,setNote]=useState(''),[busy,setBusy]=useState(false);
+ const allowed=organization.permissions.includes('compliance:review');
+ const load=useCallback(async()=>{if(!allowed)return;setLoading(true);setError('');try{const result=await api.consumerSecurityRequests();setItems(result.requests);}catch(cause){setError(cause instanceof Error?cause.message:'Requests could not be loaded.');}finally{setLoading(false);}},[allowed]);
+ useEffect(()=>{void load();},[load]);
+ async function review(state:'IN_REVIEW'|'REJECTED'|'CANCELLED'){
+  if(!selected||!note.trim()||busy)return;
+  setBusy(true);setError('');try{await api.reviewConsumerSecurity(selected.id,{state,note:note.trim()});setSelected(null);setNote('');await load();}catch(cause){setError(cause instanceof Error?cause.message:'The decision could not be saved.');}finally{setBusy(false);}
+ }
+ if(!allowed)return <section className="panel empty-panel"><ShieldCheck/><h2>Review access required</h2><p>Your role cannot review customer security requests.</p></section>;
+ return <section className="panel"><div className="panel-heading"><div><h2>Customer security requests</h2><p>Review recovery and account closure requests. A review never transfers control of a wallet.</p></div><button className="secondary" disabled={loading} onClick={()=>void load()}><RefreshCw size={16}/>Refresh</button></div>
+ {error?<div className="banner danger" role="alert">{error}</div>:null}
+ {loading&&!items.length?<p role="status">Loading requests…</p>:!items.length?<div className="empty-panel"><ShieldCheck/><h3>No security requests</h3><p>New customer requests will appear here.</p></div>:<div className="business-directory-table-wrap"><table><thead><tr><th>Customer</th><th>Request</th><th>Status</th><th>Received</th><th/></tr></thead><tbody>{items.map(item=><tr key={item.id}><td>{item.handle?`@${item.handle}`:'Oynk customer'}</td><td>{item.kind==='LOST_DEVICE'?'Lost device':'Account closure'}</td><td>{item.state.replaceAll('_',' ')}</td><td>{new Date(item.created_at).toLocaleString()}</td><td><button className="secondary" onClick={()=>{setSelected(item);setNote('');setError('');}}>Review</button></td></tr>)}</tbody></table></div>}
+ {selected?<div className="pos-modal-backdrop"><section className="pos-modal" role="dialog" aria-modal="true" aria-labelledby="security-request-title"><div className="panel-heading"><h2 id="security-request-title" className="consumer-security-heading"><KeyRound size={20}/>{selected.kind==='LOST_DEVICE'?'Device recovery':'Account closure'}</h2><button className="secondary" disabled={busy} onClick={()=>setSelected(null)}>Close</button></div><p>{selected.handle?`@${selected.handle}`:'Oynk customer'} · {selected.network}</p><p className="hint">Reference: {selected.id}</p><p className="hint" style={{overflowWrap:'anywhere'}}>Wallet: {selected.wallet}</p><div className="banner info"><p>{selected.kind==='LOST_DEVICE'?'Confirm identity and arrange the authorized wallet recovery process. Phone verification alone cannot replace the signer.':'Check outstanding balances, transactions and record-retention requirements before arranging closure.'}</p></div>{['OPEN','IN_REVIEW'].includes(selected.state)?<><label className="field"><span>Review note</span><textarea value={note} maxLength={1000} onChange={event=>setNote(event.target.value)} rows={3}/></label><div className="consumer-security-actions"><button className="primary" disabled={busy||!note.trim()} onClick={()=>void review('IN_REVIEW')}>{busy?'Saving…':'Start review'}</button><button className="secondary" disabled={busy||!note.trim()} onClick={()=>void review('REJECTED')}>Reject request</button><button className="secondary" disabled={busy||!note.trim()} onClick={()=>void review('CANCELLED')}>Cancel request</button></div></>:<p>This request is {selected.state.toLowerCase()}.</p>}{error?<p role="alert">{error}</p>:null}</section></div>:null}
+ </section>;
+}

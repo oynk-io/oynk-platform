@@ -11,10 +11,12 @@ export type ConsoleRoute = {
 
 const businessRoutes = [
   ["home", "Home", "Business overview", "Monitor account readiness and payment operations.", "No payment activity yet", "Transactions and settlement activity will appear here after your account is activated and begins processing payments."],
+  ["accounts", "Accounts", "Business accounts", "Set up dedicated naira banking and a verified USDC settlement account.", "Accounts not configured", "Complete business review before provisioning financial accounts."],
   ["payments", "Payments", "Payments", "Review collections and customer payment activity.", "No payments yet", "Payments created through checkout, payment links, terminals, or the API will appear here."],
   ["payouts", "Payouts", "Payouts", "Track beneficiary and supplier disbursements.", "No payouts yet", "Payout requests and their delivery status will appear here once payout access is enabled."],
   ["cross-border", "Cross-border", "Cross-border transfers", "Review quotes, recipients, and transfer settlement.", "No cross-border transfers yet", "Cross-border transfer activity will appear here when your organization initiates its first supported transfer."],
   ["point-of-sale", "Point of sale", "Point of sale", "Manage terminal applications, locations, and device activity.", "No terminals assigned", "Approved terminal applications and assigned devices will appear here."],
+  ["mart", "Oynk Mart", "Oynk Mart", "Connect an inventory source and monitor published listings.", "No catalog source connected", "Connect your bookkeeping or inventory platform to start syncing items."],
   ["settlements", "Settlements", "Settlements", "Track expected settlements and reconciliation status.", "No settlements yet", "Completed payment batches and their settlement status will appear here."],
   ["team", "Team", "Team and roles", "Manage organization access and responsibilities.", "No additional team members", "Invite colleagues when organization membership management is enabled for your account."],
   ["settings", "Settings", "Organization settings", "Review account, security, and notification preferences.", "No configurable preferences yet", "Organization settings will appear here as capabilities are enabled for your account."],
@@ -31,6 +33,7 @@ const partnerRoutes = [
 ] as const;
 
 const internalRoutes = [
+  ["customer-security", "Customer security", "Customer security", "Review device recovery and account closure requests.", "No security requests", "Customer requests will appear here."],
   ["home", "Overview", "Protocol operations", "Monitor contract state, balances, liquidity and protected operations.", "No items require attention", "Review queues and operational activity will appear here as records are created."],
   ["protocol", "Protocol", "Protocol state", "Review Soroban contracts, balances, pool statistics and ramp rates.", "Protocol state unavailable", "Contract state will appear when the configured network is reachable."],
   ["ramps", "Transactions", "Ramp transactions", "Search and inspect on-ramp and off-ramp transaction lifecycles.", "No ramp transactions", "New on-ramp and off-ramp records will appear here."],
@@ -40,6 +43,7 @@ const internalRoutes = [
   ["businesses", "Businesses", "Businesses", "Review registered business organizations and account state.", "No businesses found", "Business organizations will appear here after registration."],
   ["partners", "Partners", "Settlement partners", "Review partner organizations, capabilities, and activation.", "No partners found", "Settlement partner applications will appear here after registration."],
   ["payments", "Payments", "Payment operations", "Review payment activity and operational exceptions.", "No payment activity", "Platform payment records will appear here when payment processing is connected."],
+  ["order-disputes", "Order disputes", "Order disputes", "Review customer fulfilment reports and control refunds.", "No order disputes", "Customer reports will appear here for independent review."],
   ["settlements", "Settlement network", "Settlement network", "Inspect provider orders, partial fills, corridor rates and registered-provider capacity from Soroban.", "No settlement selected", "Enter a request, fill, corridor or provider identifier to inspect its contract state."],
   ["terminals", "Terminals", "Terminal operations", "Review applications, inventory, and device incidents.", "No terminal records", "Terminal applications and managed devices will appear here as they are registered."],
   ["risk-alerts", "Risk alerts", "Risk alerts", "Review operational and compliance signals.", "No open risk alerts", "Risk signals requiring operator review will appear here."],
@@ -76,5 +80,9 @@ export function getConsoleRoutes(type: OrganizationType): ConsoleRoute[] {
 }
 
 export function getConsoleRoute(type: OrganizationType, path: string): ConsoleRoute | null {
+  if (type === 'INTERNAL' && /^\/internal\/businesses\/[a-z0-9]+(?:-[a-z0-9]+)*\/?$/i.test(path) && path.split('/')[3].length <= 100) {
+    return { path, label: 'Businesses', title: 'Business details', description: 'Business profile, accounts and setup history.', emptyTitle: 'Business not found', emptyDescription: 'Return to the business directory.' };
+  }
+  if (type === 'BUSINESS' && path === '/business/information-requests') return {path,label:'Information requests',title:'Information requests',description:'Review and respond to requests from Oynk.',emptyTitle:'No information requests',emptyDescription:'Requests from Oynk will appear here.'};
   return getConsoleRoutes(type).find((route) => route.path === path) ?? (verificationRoutes[type]?.path === path ? verificationRoutes[type] ?? null : null);
 }

@@ -4,16 +4,17 @@ import { z } from 'zod';
 import { pool } from '../db/pool.js';
 import type { Identity } from './auth.js';
 import { funding } from './settings.js';
-import { kobo, limits, rollingAllowance, transferQuote } from './money.js';
+import { collectionQuote, kobo, limits, rollingAllowance, transactionLimits, transferQuote, type FiatTier } from './money.js';
 import { fiatRampProvider } from './providers/index.js';
 import { createRampTransaction, recordProviderConfirmation } from '../ramp/service.js';
 import { protocolContracts } from './protocol.js';
 import { orchestratorOnrampQuote } from './stellarBalance.js';
-import { PaystackRequestError } from './paystack.js';
 import { orchestratorRequest } from '../ramp/protocol.js';
 import { bytes32, contractAddress, i128, rampProvider, submitRampInvocation, u32, u64 } from '../ramp/soroban.js';
+import type { VerifiedFiatReceipt } from './providers/types.js';
 
 export class FundingError extends Error { constructor(message: string, readonly status = 400) { super(message); } }
+function providerRejection(error:unknown):error is Error&{kind:'rejected';code:string}{return error instanceof Error&&(error as any).kind==='rejected'&&typeof (error as any).code==='string';}
 const detailsSchema = z.object({
  firstName: z.string().trim().min(2).max(100), lastName: z.string().trim().min(2).max(100),
  // Email is optional for Tier 1. Normalize an omitted value to an empty
@@ -21,7 +22,7 @@ const detailsSchema = z.object({
  email: z.union([z.email().max(254).transform(x => x.toLowerCase()), z.literal('')]).default(''), phone: z.string().regex(/^\+234\d{10}$/).optional(),
  addressLine: z.string().trim().min(5).max(240), city: z.string().trim().min(2).max(100), state: z.string().trim().min(2).max(100), country: z.literal('NG'),
 });
-type Account = { id: string; subject: string; client_id: string; wallet: string; network: 'TESTNET'|'PUBLIC'; tier: 1|2|3; profile: z.infer<typeof detailsSchema> };
+type Account = { id: string; subject: string; client_id: string; wallet: string; network: 'TESTNET'|'PUBLIC'; tier: FiatTier; profile: z.infer<typeof detailsSchema>; fiat_onboarding_skipped_at:string|null };
 export async function transaction<T>(fn: (db: PoolClient) => Promise<T>) {
  const db = await pool.connect();
  try { await db.query('BEGIN'); await db.query("SET LOCAL lock_timeout = '3s'"); await db.query("SET LOCAL statement_timeout = '8s'"); const result = await fn(db); await db.query('COMMIT'); return result; }
@@ -30,7 +31,7 @@ export async function transaction<T>(fn: (db: PoolClient) => Promise<T>) {
 export async function accountFor(identity: Identity, db: Pick<PoolClient,'query'> = pool, lock = false): Promise<Account> {
  const result = await db.query('SELECT * FROM consumer_accounts WHERE subject=$1 AND client_id=$2 AND network=$3' + (lock ? ' FOR UPDATE' : ''), [identity.subject, identity.clientId, identity.network]);
  const account = result.rows[0] as Account | undefined;
- if (!account) throw new FundingError('Complete your personal details before depositing.');
+ if (!account) throw new FundingError('Your Oynk account could not be found. Please sign in again.',404);
  if (account.wallet !== identity.wallet) throw new FundingError('Your smart-account mapping needs review. Contact Oynk support.', 409);
  return account;
 }
@@ -53,6 +54,13 @@ export async function saveProfile(identity: Identity, raw: unknown) {
   return { profile: parsed.data, tier: account.tier };
  });
 }
+export async function profileStatus(identity:Identity){
+ const account=await accountFor(identity);
+ const verification=(await pool.query(`SELECT initial_identity_type,nin_fingerprint,bvn_fingerprint,provider_tier FROM consumer_fiat_verifications WHERE account_id=$1`,[account.id])).rows[0];
+ const linked=(await pool.query('SELECT phone FROM consumer_phone_links WHERE subject=$1 AND client_id=$2 AND network=$3 LIMIT 1',[account.subject,account.client_id,account.network])).rows[0];
+ const profile={...(account.profile??{}),phone:account.profile?.phone||linked?.phone||'',country:'NG'};
+ return{profile,tier:account.tier,fiat:{tier:account.tier,provider:'VFD',skipped:account.tier===0&&Boolean(account.fiat_onboarding_skipped_at),initialMethod:verification?.initial_identity_type?.toLowerCase()??null,ninVerified:account.tier>=2||Boolean(verification?.nin_fingerprint),bvnVerified:account.tier>=2||Boolean(verification?.bvn_fingerprint),addressVerified:account.tier>=3,dailyLimitKobo:String(limits[account.tier]),transactionLimitKobo:String(transactionLimits[account.tier])}};
+}
 async function allowance(db: Pick<PoolClient,'query'>, account: Account) {
  const result = await db.query(`SELECT (i.quote->>'depositKobo')::bigint AS amount_kobo,r.paid_at AS at FROM consumer_fiat_receipts r JOIN consumer_deposit_intents i USING(reference) WHERE r.account_id=$1 AND r.state='fiat_received' AND r.paid_at > now()-interval '24 hours'`,[account.id]);
  const rolling = rollingAllowance(account.tier,result.rows.map(row => ({amount:BigInt(row.amount_kobo),at:new Date(row.at).getTime()})),Date.now());
@@ -65,7 +73,7 @@ export async function fundingStatus(identity: Identity) {
  const receipts = await pool.query('SELECT reference,amount_kobo AS "amountKobo",fee_kobo AS "feeKobo",paid_at AS "paidAt",state FROM consumer_fiat_receipts WHERE account_id=$1 ORDER BY paid_at DESC LIMIT 30',[account.id]);
  const pending = await pool.query(`SELECT reference,state,quote,bank,expires_at AS "expiresAt" FROM consumer_deposit_intents WHERE account_id=$1 AND state IN ('creating','pending','review') ORDER BY created_at DESC`,[account.id]);
  const provider=fiatRampProvider();
- return { tier:account.tier, limits:await allowance(pool,account), receipts:receipts.rows, pending:pending.rows, mode:provider.environment, provider:provider.id, settlement:'not_available', available:provider.configured && ((provider.environment==='live') === (identity.network==='PUBLIC')) };
+ return { tier:account.tier, limits:await allowance(pool,account), receipts:receipts.rows, pending:pending.rows, mode:provider.environment, provider:provider.id, settlement:'not_available', available:account.tier>0 && provider.configured && ((provider.environment==='live') === (identity.network==='PUBLIC')) };
 }
 export async function createQuote(identity: Identity, amount: unknown) {
  let principal: bigint;
@@ -79,45 +87,48 @@ export async function createQuote(identity: Identity, amount: unknown) {
  }
  return transaction(async db => {
   const account = await accountFor(identity,db,true); const available = await allowance(db,account);
+  if(account.tier===0)throw new FundingError('Activate Oynk Pay before using naira.',409);
+  if(principal>transactionLimits[account.tier])throw new FundingError('This amount is above your per-transaction limit.',409);
   const recent = await db.query(`SELECT count(*)::int AS count FROM consumer_deposit_intents WHERE account_id=$1 AND created_at > now()-interval '5 minutes'`,[account.id]);
   if (recent.rows[0].count >= 10) throw new FundingError('Please wait a few minutes before requesting more quotes.',429);
-  const feeQuote = transferQuote(principal,contractQuote.fiatPerUsdc);
+  const provider=fiatRampProvider();
+  const feeQuote = provider.id==='PAYSTACK'?transferQuote(principal,contractQuote.fiatPerUsdc):collectionQuote(principal,contractQuote.fiatPerUsdc,gross=>provider.collectionFeeMinor(gross));
   if (feeQuote.estimatedUsdcAtomic !== contractQuote.usdcAmount.toString()) throw new FundingError('The contract quote changed. Request a fresh quote.',409);
   const quote = {...feeQuote,indicative:false,rateSource:'SOROBAN_ORCHESTRATOR',rateContract:contractQuote.contractId,rateVersion:contractQuote.rateVersion.toString(),rateValidUntilLedger:contractQuote.validUntilLedger,rateObservedAtLedger:contractQuote.latestLedger};
   if (principal > BigInt(available.availableToRequestKobo)) throw new FundingError(BigInt(available.reservedKobo)>0n ? 'You already have a pending deposit using part of your allowance. Finish it before requesting this amount.' : 'This deposit exceeds your remaining 24-hour allowance. Fees do not count toward your limit.');
-  const reference = `oynk-${randomUUID()}`;
+  const reference = `${provider.id==='VFD'?funding.VFD_WALLET_PREFIX:'oynk'}-${randomUUID()}`;
   const requestId=createHash('sha256').update(reference).digest('hex');
-  const providerReference=createHash('sha256').update(`${fiatRampProvider().id}:${reference}`).digest('hex');
+  const providerReference=createHash('sha256').update(`${provider.id}:${reference}`).digest('hex');
   const expiresAt = new Date(Date.now()+5*60000).toISOString();
   const providerAddress=rampProvider(identity.network);const deadlineLedger=Math.min(contractQuote.validUntilLedger,contractQuote.latestLedger+17_280);
-  const ramp = await createRampTransaction(db,{reference,idempotencyKey:`consumer-on-ramp:${reference}`,direction:'ON_RAMP',consumerAccountId:account.id,subjectReference:account.subject,walletAddress:account.wallet,network:account.network,fiatCurrency:'NGN',fiatAmountMinor:principal,usdcAmountAtomic:contractQuote.usdcAmount,feeFiatMinor:BigInt(quote.feeKobo),provider:'PAYSTACK',metadata:{source:'consumer_deposit_quote',requestId,providerReference,providerAddress,deadlineLedger,rateSource:quote.rateSource,rateContract:quote.rateContract,rateVersion:quote.rateVersion,rateValidUntilLedger:quote.rateValidUntilLedger,rateObservedAtLedger:quote.rateObservedAtLedger},actor:{type:'CONSUMER',reference:account.id}});
+  const ramp = await createRampTransaction(db,{reference,idempotencyKey:`consumer-on-ramp:${reference}`,direction:'ON_RAMP',consumerAccountId:account.id,subjectReference:account.subject,walletAddress:account.wallet,network:account.network,fiatCurrency:'NGN',fiatAmountMinor:principal,usdcAmountAtomic:contractQuote.usdcAmount,feeFiatMinor:BigInt(quote.feeKobo),provider:provider.id,metadata:{source:'consumer_deposit_quote',requestId,providerReference,providerAddress,deadlineLedger,rateSource:quote.rateSource,rateContract:quote.rateContract,rateVersion:quote.rateVersion,rateValidUntilLedger:quote.rateValidUntilLedger,rateObservedAtLedger:quote.rateObservedAtLedger},actor:{type:'CONSUMER',reference:account.id}});
   await db.query(`UPDATE ramp_transactions SET orchestrator_request_id=$2,onchain_state='NOT_CREATED' WHERE id=$1`,[ramp.id,requestId]);
   await db.query('INSERT INTO consumer_deposit_intents(reference,account_id,amount_kobo,quote,expires_at,ramp_transaction_id) VALUES($1,$2,$3,$4,$5,$6)',[reference,account.id,quote.totalKobo,quote,expiresAt,ramp.id]);
   return { reference,...quote,expiresAt,limits:available,ramp:{id:ramp.id,state:ramp.state,approvalState:ramp.approval_state},intent:{requestId,providerReference,providerAddress,orchestrator:contracts.orchestrator,fiatAmountMinor:principal.toString(),minUsdcAmountAtomic:contractQuote.usdcAmount.toString(),rateVersion:contractQuote.rateVersion.toString(),deadlineLedger} };
  });
 }
-function networkCheck(identity: Identity) {
- if ((fiatRampProvider().environment === 'live') !== (identity.network === 'PUBLIC')) throw new FundingError('The payment environment does not match your smart-account network.',409);
+function networkCheck(identity: Identity,provider=fiatRampProvider()) {
+ if ((provider.environment === 'live') !== (identity.network === 'PUBLIC')) throw new FundingError('The payment environment does not match your smart-account network.',409);
 }
 export async function startDeposit(identity: Identity, reference: string, consent: unknown) {
- networkCheck(identity);
- if (!fiatRampProvider().configured) throw new FundingError('Naira deposits are being configured. Please try again later.',503);
- if (consent !== true) throw new FundingError('Confirm that Paystack may use your details to process this deposit.');
- const started = await transaction(async db => {
+ if (consent !== true) throw new FundingError('Confirm that Oynk may use your details to process this deposit.');
+  const started = await transaction(async db => {
   const account = await accountFor(identity,db,true);
-  if (!account.profile.email) throw new FundingError('Add an email address to receive your bank transfer details.',409);
   const result = await db.query('SELECT * FROM consumer_deposit_intents WHERE reference=$1 AND account_id=$2 FOR UPDATE',[reference,account.id]);
   const intent = result.rows[0]; if (!intent) throw new FundingError('Deposit quote not found.',404);
   if (intent.state === 'failed') throw new FundingError(intent.failure_message || 'Bank details could not be created. Start a new deposit.',409);
   if (intent.state !== 'quoted') return { account,intent,create:false };
-  const ramp=(await db.query('SELECT id,orchestrator_request_id,metadata FROM ramp_transactions WHERE id=$1 FOR UPDATE',[intent.ramp_transaction_id])).rows[0];
+  const ramp=(await db.query('SELECT id,orchestrator_request_id,metadata,provider FROM ramp_transactions WHERE id=$1 FOR UPDATE',[intent.ramp_transaction_id])).rows[0];
+  const provider=fiatRampProvider(ramp.provider);networkCheck(identity,provider);
+  if(!provider.configured)throw new FundingError('Naira deposits are being configured. Please try again later.',503);
+  if(provider.id==='PAYSTACK'&&!account.profile.email)throw new FundingError('Add an email address to receive your bank transfer details.',409);
   if (new Date(intent.expires_at).getTime() <= Date.now()) throw new FundingError('This quote expired. Request a fresh quote.');
   const available = await allowance(db,account);
   if (BigInt(intent.quote.depositKobo) > BigInt(available.availableToRequestKobo)) throw new FundingError('Your available deposit allowance changed. Request a fresh quote.');
   const quotedOrchestrator=typeof intent.quote?.rateContract==='string'?intent.quote.rateContract:protocolContracts(identity.network).orchestrator;
   let chain=await orchestratorRequest(identity.network,ramp.orchestrator_request_id,quotedOrchestrator);let request=chain.request as any;let createTxHash:string|undefined;
   if(!request){
-   const providerReference=typeof ramp.metadata?.providerReference==='string'?ramp.metadata.providerReference:createHash('sha256').update(`${fiatRampProvider().id}:${reference}`).digest('hex');
+   const providerReference=typeof ramp.metadata?.providerReference==='string'?ramp.metadata.providerReference:createHash('sha256').update(`${provider.id}:${reference}`).digest('hex');
    const providerAddress=typeof ramp.metadata?.providerAddress==='string'?ramp.metadata.providerAddress:rampProvider(identity.network);
    const deadlineLedger=Number(ramp.metadata?.deadlineLedger??ramp.metadata?.rateValidUntilLedger);
    createTxHash=await submitRampInvocation(identity.network,quotedOrchestrator,'create_onramp_for',[contractAddress(account.wallet),i128(intent.quote.depositKobo),i128(intent.quote.estimatedUsdcAtomic),u64(intent.quote.rateVersion),bytes32(providerReference),contractAddress(providerAddress),bytes32(ramp.orchestrator_request_id),u32(deadlineLedger)]);
@@ -127,18 +138,18 @@ export async function startDeposit(identity: Identity, reference: string, consen
   await db.query(`UPDATE consumer_deposit_intents SET state='creating',expires_at=now()+interval '30 minutes' WHERE reference=$1`,[reference]);
   await db.query(`UPDATE ramp_transactions SET onchain_state='AWAITING_FIAT',stellar_transaction_hash=COALESCE($2,stellar_transaction_hash),metadata=metadata||$3::jsonb,updated_at=NOW() WHERE id=$1`,[intent.ramp_transaction_id,createTxHash??null,JSON.stringify(createTxHash?{createTxHash}:{})]);
   await db.query('UPDATE consumer_accounts SET consent_at=now() WHERE id=$1',[account.id]);
-  return { account,intent,create:true };
+  return { account,intent,create:true,providerId:provider.id };
  });
  if (started.create) {
   // Exactly one creator wins the DB transition. A timeout never causes a second POST.
-  const provider=fiatRampProvider();
+  const provider=fiatRampProvider(started.providerId);
   let details;
   try {
-   details=await provider.createBankTransfer({email:started.account.profile.email,amountMinor:started.intent.amount_kobo,reference,accountId:started.account.id,expiresAt:new Date(Date.now()+30*60000).toISOString()});
+   details=await provider.createBankTransfer({email:started.account.profile.email??'',amountMinor:started.intent.amount_kobo,reference,accountId:started.account.id,expiresAt:new Date(Date.now()+30*60000).toISOString()});
   } catch (error) {
-   if (error instanceof PaystackRequestError && error.kind === 'rejected') {
-    await pool.query(`UPDATE consumer_deposit_intents SET state='failed',failure_code=$2,failure_message=$3 WHERE reference=$1 AND state='creating'`,[reference,error.code,'Bank details could not be created. Check your payment email and start a new deposit.']);
-    throw new FundingError('Bank details could not be created. Check your payment email and start a new deposit.',422);
+   if (providerRejection(error)) {
+    await pool.query(`UPDATE consumer_deposit_intents SET state='failed',failure_code=$2,failure_message=$3 WHERE reference=$1 AND state='creating'`,[reference,error.code,'Bank details could not be created. Review your details and start a new deposit.']);
+    throw new FundingError('Bank details could not be created. Review your details and start a new deposit.',422);
    }
    throw new FundingError('We could not confirm bank details yet. Wait a moment, then check this deposit again.',503);
   }
@@ -156,9 +167,8 @@ export async function getDeposit(identity: Identity, reference: string) {
  return result.rows[0];
 }
 
-export async function reconcile(reference: string) {
- const provider=fiatRampProvider();
- const data = await provider.verify(reference);
+export async function recordVerifiedFiatReceipt(reference:string,data:VerifiedFiatReceipt,providerId:string){
+ const provider=fiatRampProvider(providerId);
  if (data.reference !== reference) throw new Error('Payment verification mismatch');
  if (data.status !== 'success') {
   // Only terminal provider status, after expiry/grace, can release a reservation.
@@ -186,15 +196,22 @@ export async function reconcile(reference: string) {
  });
 }
 
+export async function reconcile(reference: string) {
+ const selected=await pool.query(`SELECT r.provider FROM consumer_deposit_intents i JOIN ramp_transactions r ON r.id=i.ramp_transaction_id WHERE i.reference=$1`,[reference]);
+ const providerId=String(selected.rows[0]?.provider??'');if(!providerId)return;
+ const provider=fiatRampProvider(providerId);const data=await provider.verify(reference);
+ await recordVerifiedFiatReceipt(reference,data,provider.id);
+}
+
 export async function recoverDeposit(reference: string) {
  await pool.query('UPDATE consumer_deposit_intents SET last_checked_at=now() WHERE reference=$1',[reference]);
  try { await reconcile(reference); } catch { /* Check the pending-charge endpoint as an independent recovery source. */ }
- const intent = (await pool.query('SELECT state FROM consumer_deposit_intents WHERE reference=$1',[reference])).rows[0];
+ const intent = (await pool.query(`SELECT i.state,r.provider FROM consumer_deposit_intents i JOIN ramp_transactions r ON r.id=i.ramp_transaction_id WHERE i.reference=$1`,[reference])).rows[0];
  if (intent?.state !== 'creating') return;
- const provider=fiatRampProvider();let details;
+ const provider=fiatRampProvider(intent.provider);let details;
  try { details=provider.recoverBankTransfer?await provider.recoverBankTransfer(reference):null; }
  catch (error) {
-  if (error instanceof PaystackRequestError && error.kind === 'rejected') {
+  if (providerRejection(error)) {
    await pool.query(`UPDATE consumer_deposit_intents SET state='failed',failure_code=$2,failure_message=$3 WHERE reference=$1 AND state='creating'`,[reference,error.code,'Bank details could not be created. Start a new deposit.']);
   }
   return;

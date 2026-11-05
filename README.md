@@ -1,6 +1,13 @@
 # Oynk Platform
 
-A pnpm monorepo for Oynk's programmable payment and settlement platform. It contains the public web experience, organization operations console, transaction-visibility application, API and shared domain models, technical documentation, and blockchain indexers for BNB Smart Chain and Solana.
+A pnpm monorepo for Oynk's programmable payment and settlement platform. It contains the public web experience, business and partner console, internal operations control panel, transaction-visibility application, API and shared domain models, technical documentation, and blockchain indexers for BNB Smart Chain and Solana.
+
+The organization surfaces are deployed separately:
+
+- `console.oynk.io` serves businesses and settlement partners.
+- `control.oynk.io` serves authorized Oynk operations staff.
+
+Both use the same API and authorization model, while build-time surface guards prevent an authenticated organization from remaining on the wrong application.
 
 ## Soroban protocol
 
@@ -45,7 +52,7 @@ pnpm db:migrate
 pnpm dev
 ```
 
-Open `http://localhost:5173`. The API runs on `http://localhost:4000` and Vite proxies `/api` to it.
+Open `http://localhost:5173` for the public site, `http://localhost:5174` for the business and partner console, and `http://localhost:5176` for internal control. The API runs on `http://localhost:4000` by default and Vite proxies `/api` to it.
 
 To trigger a one-time sync:
 

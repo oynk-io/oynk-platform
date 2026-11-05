@@ -1,0 +1,41 @@
+.mart-store-photo-field { display: grid; gap: 10px; }
+.mart-store-photo { position: relative; aspect-ratio: 16 / 9; overflow: hidden; border-radius: 16px; background: #eef3e9; }
+.mart-store-photo > img { width: 100%; height: 100%; object-fit: cover; }
+.mart-store-photo-empty { height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; color: #6c826e; font-size: 12px; }
+.mart-store-photo-progress { position: absolute; inset: 0; background: #ffffffe6; display: flex; align-items: center; justify-content: center; gap: 8px; color: #315b48; font-size: 13px; }
+.mart-store-photo-upload { display: inline-flex !important; flex-direction: row !important; align-items: center; justify-content: center; gap: 7px !important; min-height: 40px; padding: 8px 12px; border: 1px solid #dce8df; border-radius: 12px; color: #255b3d !important; font-size: 12px !important; font-weight: 600; cursor: pointer; }
+.mart-store-photo-upload input { display: none; }
+.mart-store-photo-upload:hover { background: #f4f8f0; }
+.mart-store-photo-upload.disabled { opacity: .5; cursor: default; }
+.mart-storefront-overview { display: flex; align-items: center; gap: 15px; }
+.mart-storefront-preview { width: 80px; height: 65px; object-fit: cover; border-radius: 12px; flex: none; }
+.mart-store-photo { aspect-ratio: 1.85; }
+.mart-storefront-preview { width: 96px; height: 52px; }
+/* The crop portal opens above the storefront settings modal (z-index: 1000). */
+.mart-crop-backdrop { position: fixed; inset: 0; z-index: 1100; display: flex; align-items: center; justify-content: center; padding: 24px; background: #10231bb3; backdrop-filter: blur(4px); }
+.mart-crop-dialog { width: min(100%, 540px); max-height: calc(100dvh - 48px); overflow-y: auto; border-radius: 22px; padding: 24px; background: #fff; box-shadow: 0 24px 80px #0c1f2540; outline: none; }
+.mart-crop-dialog header { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 20px; }
+.mart-crop-eyebrow { display: inline-flex; align-items: center; gap: 6px; color: #426c50; font-size: 10px; font-weight: 700; letter-spacing: .8px; }
+.mart-crop-dialog h2 { margin: 6px 0; color: #17372d; font-size: 22px; letter-spacing: -.6px; }
+.mart-crop-dialog header p, .mart-crop-tip { margin: 0; font-size: 12px; line-height: 1.6; color: #6b7e75; }
+.mart-crop-window { position: relative; overflow: hidden; width: 100%; border-radius: 14px; background: #26372e; touch-action: none; cursor: grab; }
+.mart-crop-window:active { cursor: grabbing; }
+.mart-crop-window > img { position: absolute; max-width: none; object-fit: fill; user-select: none; pointer-events: none; }
+.mart-crop-guides { position: absolute; pointer-events: none; outline: 2px solid #fff; border-radius: 2px; box-shadow: 0 0 0 9999px #10201799; }
+.mart-crop-guides b { position: absolute; width: 18px; height: 18px; border: solid #fff; border-width: 0; }
+.mart-crop-guides b:nth-of-type(1) { top: -3px; left: -3px; border-top-width: 4px; border-left-width: 4px; }
+.mart-crop-guides b:nth-of-type(2) { top: -3px; right: -3px; border-top-width: 4px; border-right-width: 4px; }
+.mart-crop-guides b:nth-of-type(3) { bottom: -3px; left: -3px; border-bottom-width: 4px; border-left-width: 4px; }
+.mart-crop-guides b:nth-of-type(4) { bottom: -3px; right: -3px; border-bottom-width: 4px; border-right-width: 4px; }
+.mart-crop-guides i { position: absolute; background: #ffffff66; }
+.mart-crop-guides i:nth-child(1), .mart-crop-guides i:nth-child(2) { top: 0; bottom: 0; width: 1px; left: 33.333%; }
+.mart-crop-guides i:nth-child(2) { left: 66.666%; }
+.mart-crop-guides i:nth-child(3), .mart-crop-guides i:nth-child(4) { left: 0; right: 0; height: 1px; top: 33.333%; }
+.mart-crop-guides i:nth-child(4) { top: 66.666%; }
+.mart-crop-tip { padding-top: 9px; }
+.mart-crop-controls { display: grid; gap: 13px; padding: 20px 0; }
+.mart-crop-controls label { display: grid; grid-template-columns: 90px 1fr; align-items: center; gap: 12px; color: #42614e; font-size: 12px; font-weight: 600; }
+.mart-crop-controls input { width: 100%; accent-color: #275d43; }
+.mart-crop-dialog footer { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding-top: 6px; }
+.mart-crop-reset { display: inline-flex; align-items: center; gap: 6px; background: none; border: 0; color: #52705a; font-size: 12px; cursor: pointer; min-height: 44px; }
+@media (max-width: 600px) { .mart-crop-backdrop { padding: 12px; } .mart-crop-dialog { padding: 18px; max-height: calc(100dvh - 24px); } }

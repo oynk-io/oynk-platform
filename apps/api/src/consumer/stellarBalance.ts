@@ -53,7 +53,7 @@ export async function poolPosition(identity: Pick<Identity,'wallet'|'network'>, 
   const tx = new TransactionBuilder(new Account(readSource, '0'), { fee: '100', networkPassphrase: passphrase })
    .addOperation(new Contract(poolAddress).call(method, nativeToScVal(identity.wallet, { type: 'address' }))).setTimeout(60).build();
   const id=`pool-${method}`;
-  const response = await request(endpoint, { method:'POST', headers:{'Content-Type':'application/json'}, redirect:'error', body:JSON.stringify({jsonrpc:'2.0',id,method:'simulateTransaction',params:{transaction:tx.toXDR()}}) });
+  const response = await request(endpoint, { method:'POST', headers:{'Content-Type':'application/json'}, redirect:'error', signal:AbortSignal.timeout(12_000), body:JSON.stringify({jsonrpc:'2.0',id,method:'simulateTransaction',params:{transaction:tx.toXDR()}}) });
   if (!response.ok) throw new Error('Stellar RPC unavailable');
   const body=await response.json();const encoded=body?.result?.results?.[0]?.xdr;
   if(body?.jsonrpc!=='2.0'||body?.id!==id||body?.error||body?.result?.error||typeof encoded!=='string')throw new Error('Pool position unavailable');
@@ -75,7 +75,7 @@ export async function poolStats(identity: Pick<Identity,'network'>, poolAddress:
  const endpoint = identity.network === 'TESTNET' ? process.env.STELLAR_TESTNET_RPC_URL || 'https://soroban-testnet.stellar.org' : process.env.STELLAR_PUBLIC_RPC_URL;
  if (!endpoint || !StrKey.isValidContract(poolAddress)) throw new Error('Pool stats unavailable');
  const tx = new TransactionBuilder(new Account(readSource,'0'), { fee:'100', networkPassphrase:Networks[identity.network] }).addOperation(new Contract(poolAddress).call('get_stats')).setTimeout(60).build();
- const response = await request(endpoint, { method:'POST', headers:{'Content-Type':'application/json'}, redirect:'error', body:JSON.stringify({jsonrpc:'2.0',id:'pool-stats',method:'simulateTransaction',params:{transaction:tx.toXDR()}}) });
+ const response = await request(endpoint, { method:'POST', headers:{'Content-Type':'application/json'}, redirect:'error', signal:AbortSignal.timeout(12_000), body:JSON.stringify({jsonrpc:'2.0',id:'pool-stats',method:'simulateTransaction',params:{transaction:tx.toXDR()}}) });
  if (!response.ok) throw new Error('Stellar RPC unavailable');
  const body = await response.json(); const encoded = body?.result?.results?.[0]?.xdr;
  if (body?.jsonrpc !== '2.0' || body?.error || typeof encoded !== 'string') throw new Error('Pool stats unavailable');

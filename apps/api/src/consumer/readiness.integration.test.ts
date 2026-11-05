@@ -1,0 +1,66 @@
+import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
+import { randomUUID } from 'node:crypto';
+import test from 'node:test';
+import { Wallet } from 'ethers';
+
+test('owner approvals and phone verification preserve replay, concurrency and retry boundaries', {skip:!process.env.READINESS_TEST_DATABASE_URL}, async()=>{
+ const url=new URL(process.env.READINESS_TEST_DATABASE_URL!);
+ if(url.hostname!=='127.0.0.1'||!['5432','5433'].includes(url.port)||url.pathname!=='/oynk_readiness_test')throw new Error('Use the isolated readiness database only.');
+ const schema=`readiness_${randomUUID().replaceAll('-','')}`;
+ url.searchParams.set('options',`-c search_path=${schema}`);
+ process.env.DATABASE_URL=url.toString();process.env.APP_ENV='development';
+ process.env.PHONE_OTP_PROVIDER='africastalking';
+ process.env.PHONE_OTP_DEVELOPMENT_CODE_VISIBLE='true';
+ process.env.AFRICASTALKING_USERNAME='readiness-fixture';
+ process.env.AFRICASTALKING_API_KEY='fixture-sms-key';
+ const {pool}=await import('../db/pool.js');
+ const {createActionChallenge,consumeActionApproval}=await import('./approvals.js');
+ const {transaction}=await import('./service.js');
+ const {startPhoneChallenge,verifyPhoneChallenge}=await import('./phoneAuth.js');
+ const fetchBefore=globalThis.fetch;
+ try{
+  await pool.query(`CREATE SCHEMA ${schema}`);
+  await pool.query(await readFile(new URL('../db/migrations/007_consumer_funding.sql',import.meta.url),'utf8'));
+  const protocol=await readFile(new URL('../db/migrations/031_offline_pay_terminal_protocol.sql',import.meta.url),'utf8');
+  await pool.query(protocol.match(/CREATE TABLE consumer_primary_auth_challenges \([\s\S]*?\);/)![0]);
+  await pool.query(await readFile(new URL('../db/migrations/052_consumer_action_approvals.sql',import.meta.url),'utf8'));
+  await pool.query(await readFile(new URL('../db/migrations/009_consumer_phone_auth.sql',import.meta.url),'utf8'));
+  await pool.query(await readFile(new URL('../db/migrations/053_phone_rate_limits.sql',import.meta.url),'utf8'));
+  await pool.query('CREATE TABLE consumer_phone_links(phone TEXT,client_id TEXT,auth_method TEXT)');
+  const identity={subject:'approval-user',clientId:'oynk-fixture',network:'TESTNET' as const,wallet:'CBIELTK6YBZJU5UP2WWQEUCYKLPU6AUNZ2BQ4WWFEIE3USCIHMXQDAMA',authMethod:'device' as const};
+  await pool.query('INSERT INTO consumer_accounts(id,subject,client_id,network,wallet,profile) VALUES($1,$2,$3,$4,$5,$6)',[randomUUID(),identity.subject,identity.clientId,identity.network,identity.wallet,{}]);
+  const owner=Wallet.createRandom(),key={evm:owner.address,passkey:null,rpIdHash:null,paused:false};
+  const payload={limitKobo:'1000000',pinChange:'opaque-pin-commitment'};
+  const approve=async(challenge:Awaited<ReturnType<typeof createActionChallenge>>,modified=payload)=>transaction(async db=>consumeActionApproval(db,identity,'OFFLINE_PAY_CONFIGURE',modified,{challengeId:challenge.challengeId,proof:{kind:'evm',signature:await owner.signMessage(Buffer.from(challenge.payloadHex,'hex'))}},async()=>key));
+  const first=await createActionChallenge(identity,'OFFLINE_PAY_CONFIGURE',payload);
+  await assert.rejects(()=>approve(first,{...payload,limitKobo:'2000000'}),/details changed/);
+  assert.equal(await approve(first),first.challengeId);
+  await assert.rejects(()=>approve(first),/approval expired/);
+  const simultaneous=await createActionChallenge(identity,'OFFLINE_PAY_CONFIGURE',payload);
+  const attempts=await Promise.allSettled([approve(simultaneous),approve(simultaneous)]);
+  assert.equal(attempts.filter(r=>r.status==='fulfilled').length,1);
+  const expired=await createActionChallenge(identity,'OFFLINE_PAY_CONFIGURE',payload);
+  await pool.query("UPDATE consumer_primary_auth_challenges SET expires_at=NOW()-INTERVAL '1 second' WHERE id=$1",[expired.challengeId]);
+  await assert.rejects(()=>approve(expired),/approval expired/);
+  const noProof=await createActionChallenge(identity,'OFFLINE_PAY_CONFIGURE',payload);
+  await assert.rejects(()=>transaction(db=>consumeActionApproval(db,identity,'OFFLINE_PAY_CONFIGURE',payload,{challengeId:noProof.challengeId},async()=>key)),/account approval/);
+  const wrongAccount={...identity,subject:'different-account'};
+  await assert.rejects(()=>transaction(db=>consumeActionApproval(db,wrongAccount,'OFFLINE_PAY_CONFIGURE',payload,{challengeId:noProof.challengeId},async()=>key)),/not be found/);
+  let sends=0,otp='',rejectSms=false;
+  globalThis.fetch=async(_input,init)=>{
+   sends++;const form=new URLSearchParams(String(init?.body));otp=form.get('message')!.match(/\b\d{6}\b/)![0];
+   return Response.json({SMSMessageData:{Recipients:[{number:form.get('to'),statusCode:rejectSms?404:101}]}});
+  };
+  const [one,two]=await Promise.all([startPhoneChallenge('+2348030000001','fixture-ip'),startPhoneChallenge('+2348030000001','fixture-ip')]);
+  assert.equal(one.challengeId,two.challengeId);assert.equal(sends,1);
+  assert.ok(await verifyPhoneChallenge(one.challengeId,otp));
+  assert.equal(await verifyPhoneChallenge(one.challengeId,otp),null);
+  const record=(await pool.query('SELECT expires_at FROM consumer_phone_challenges WHERE id=$1',[one.challengeId])).rows[0];
+  assert.ok(new Date(record.expires_at).getTime()>Date.now()+25*60_000);
+  rejectSms=true;
+  await assert.rejects(()=>startPhoneChallenge('+2348030000002','fixture-ip'),/could not send/);
+  assert.equal((await pool.query("SELECT COUNT(*)::int n FROM consumer_phone_challenges WHERE phone='+2348030000002'")).rows[0].n,0);
+  rejectSms=false;assert.ok((await startPhoneChallenge('+2348030000002','fixture-ip')).challengeId);
+ }finally{globalThis.fetch=fetchBefore;await pool.query(`DROP SCHEMA IF EXISTS ${schema} CASCADE`);await pool.end();}
+});

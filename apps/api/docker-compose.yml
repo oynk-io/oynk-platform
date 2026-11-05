@@ -28,6 +28,8 @@ services:
     env_file: .env
     environment:
       API_PORT: "4020"
+      # Local ngrok forwards one trusted hop to this API.
+      TRUST_PROXY_HOPS: "1"
     ports:
       - "4020:4020"
     restart: unless-stopped

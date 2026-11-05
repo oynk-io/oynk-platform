@@ -1,6 +1,7 @@
 import { LandingPage } from "./pages/LandingPage";
 import { NotFoundPage } from "./pages/NotFoundPage";
 import { ReferralPage } from "./pages/ReferralPage";
+import { AccountDeletionPage } from "./pages/AccountDeletionPage";
 
 function updateMetadata(title: string, description: string, themeColor: string) {
   document.title = title;
@@ -15,6 +16,10 @@ export default function Router() {
     return <ReferralPage code={referralCode} />;
   }
   switch (window.location.pathname) {
+    case "/account-deletion":
+    case "/account-deletion/":
+      updateMetadata("Delete your Oynk account", "Request deletion of your Oynk account and associated personal data.", "#f7f8f2");
+      return <AccountDeletionPage />;
     case "/":
       updateMetadata(
         "Oynk — Payment Infrastructure & Consumer Smart Accounts",

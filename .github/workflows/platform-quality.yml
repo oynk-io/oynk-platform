@@ -1,0 +1,54 @@
+name: Platform quality
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: oynk_readiness_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      READINESS_TEST_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/oynk_readiness_test
+      ADMIN_API_KEY: fixture-admin-key-32-characters-minimum
+      DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/oynk_readiness_test
+      BSC_RPC_URL: https://example.invalid
+      SOLANA_RPC_URL: https://example.invalid
+      APP_ENV: development
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version: '22'
+      - name: Install locked dependencies
+        run: |
+          corepack enable
+          corepack prepare pnpm@10.34.5 --activate
+          pnpm install --frozen-lockfile
+      - name: Build shared contracts
+        run: pnpm --filter @oynk/shared build
+      - name: Verify API and database concurrency
+        run: |
+          pnpm --filter @oynk/api typecheck
+          pnpm --filter @oynk/api test
+      - name: Verify Console and Control
+        run: |
+          pnpm --filter @oynk/console typecheck
+          pnpm --filter @oynk/console test
+          pnpm --filter @oynk/control typecheck

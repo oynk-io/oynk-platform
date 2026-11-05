@@ -31,7 +31,7 @@ const schema = z.object({
 	 * Comma-separated list of origins allowed to call the API.
 	 * When unset, falls back to ALLOWED_ORIGIN.
 	 */
-	CORS_ORIGINS: z.string().default("http://localhost:5173,http://localhost:5174,http://localhost:5175,https://oynk.io,https://console.oynk.io,https://transactions.oynk.io"),
+	CORS_ORIGINS: z.string().default("http://localhost:5173,http://localhost:5174,http://localhost:5175,http://localhost:5176,https://oynk.io,https://console.oynk.io,https://control.oynk.io,https://transactions.oynk.io"),
 
 	BSC_RPC_URL: z.string().url(),
 	SOLANA_RPC_URL: z.string().url(),
@@ -101,13 +101,21 @@ const schema = z.object({
 		.default("false")
 		.transform((value) => value === "true"),
 	APP_ENV: z.enum(["development", "test", "production"]).default("development"),
+  // Enable only behind a proxy that overwrites forwarded client headers.
+  TRUST_PROXY_HOPS: z.coerce.number().int().min(0).max(3).default(0),
 	PLATFORM_MODE: z.enum(["SANDBOX", "TEST", "LIVE"]).default("SANDBOX"),
+	MART_LAYAWAY_ENABLED: z.enum(["true", "false"]).default("true").transform((value) => value === "true"),
 	PUBLIC_SITE_URL: z.string().url().default("http://localhost:5173"),
 	REFERRAL_PUBLIC_URL: z.string().url().default("https://oynk.io"),
 	CONSOLE_SITE_URL: z.string().url().default("http://localhost:5174"),
+	CONTROL_SITE_URL: z.string().url().default("http://localhost:5176"),
 	API_PUBLIC_URL: z.string().url().default("http://localhost:4000"),
 	STELLAR_TESTNET_RPC_URL: z.string().url().default("https://soroban-testnet.stellar.org"),
 	STELLAR_PUBLIC_RPC_URL: z.string().url().optional(),
+	STELLAR_TESTNET_HORIZON_URL: z.string().url().default("https://horizon-testnet.stellar.org"),
+	STELLAR_PUBLIC_HORIZON_URL: z.string().url().default("https://horizon.stellar.org"),
+	USDC_TESTNET_ISSUER: z.string().regex(/^G[A-Z2-7]{55}$/).default("GBBD47IF6LWK7P7MDEVSCWR7DPUWV3NY3DTQEVFL4NAT4AQH3ZLLFLA5"),
+	USDC_PUBLIC_ISSUER: z.string().regex(/^G[A-Z2-7]{55}$/).or(z.literal("")).default(""),
 	OYNK_VAULT_TESTNET: z.string().default(""),
 	OYNK_POOL_TESTNET: z.string().default(""),
 	OYNK_ORCHESTRATOR_TESTNET: z.string().default(""),
@@ -138,6 +146,8 @@ const schema = z.object({
 	EMAIL_FROM_NAME: z.string().min(1).default("Oynk"),
 	EMAIL_FROM_ADDRESS: z.string().email().default("no-reply@oynk.io"),
 	EMAIL_REPLY_TO: z.string().email().default("support@oynk.io"),
+	PHONE_OTP_PROVIDER: z.enum(["development", "africastalking"]).default("development"),
+	PHONE_OTP_DEVELOPMENT_CODE_VISIBLE: z.enum(["true", "false"]).default("true").transform((value) => value === "true"),
 	AFRICASTALKING_USERNAME: z.string().default("sandbox"),
 	AFRICASTALKING_API_KEY: z.string().default(""),
 	AFRICASTALKING_SENDER_ID: z.string().default("Oynk"),
@@ -157,6 +167,18 @@ if (config.APP_ENV === "production" && config.ADMIN_API_KEY.startsWith("developm
 }
 if (config.EMAIL_PROVIDER === "zoho-smtp" && (!config.ZOHO_SMTP_USERNAME || !config.ZOHO_SMTP_APP_PASSWORD)) {
 	throw new Error("Zoho SMTP requires ZOHO_SMTP_USERNAME and ZOHO_SMTP_APP_PASSWORD");
+}
+if (config.APP_ENV === "production" && config.PHONE_OTP_PROVIDER !== "africastalking") {
+	throw new Error("PHONE_OTP_PROVIDER=africastalking is required in production");
+}
+if (config.APP_ENV === "production" && config.PHONE_OTP_DEVELOPMENT_CODE_VISIBLE) {
+	throw new Error("PHONE_OTP_DEVELOPMENT_CODE_VISIBLE must be false in production");
+}
+if (config.PHONE_OTP_PROVIDER === "africastalking" && (!config.AFRICASTALKING_API_KEY || !config.AFRICASTALKING_USERNAME)) {
+	throw new Error("Africa's Talking phone OTP requires a username and API key");
+}
+if (config.APP_ENV === "production" && config.AFRICASTALKING_USERNAME === "sandbox") {
+	throw new Error("A production Africa's Talking username is required");
 }
 
 export const allowedOrigins = (() => {

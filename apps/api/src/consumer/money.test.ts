@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { kobo, rollingAllowance, transferQuote } from './money.js';
+import { kobo, limits, rollingAllowance, transactionLimits, transferQuote } from './money.js';
 test('money parsing rejects floating-point and ambiguous input',()=>{
  assert.equal(kobo('10000.01'),1000001n);
  for (const bad of ['-1','1e5','NaN','1,000','0.001',100]) assert.throws(()=>kobo(bad));
@@ -17,9 +17,13 @@ test('Pay with Transfer fees are grossed up, including threshold and cap',()=>{
 test('rolling allowance releases each payment after its own 24-hour boundary',()=>{
  const day=86400000, now=1800000000000;
  const entries=[{amount:1000000n,at:now},{amount:2000000n,at:now+3600000}];
- assert.equal(rollingAllowance(1,entries,now+7200000).remainingKobo,'2000000');
- assert.equal(rollingAllowance(1,entries,now+day).remainingKobo,'3000000');
- assert.equal(rollingAllowance(1,entries,now+day+3600000).remainingKobo,'5000000');
- assert.equal(rollingAllowance(2,[],now).remainingKobo,'20000000');
- assert.equal(rollingAllowance(3,[],now).remainingKobo,'500000000');
+ assert.equal(rollingAllowance(1,entries,now+7200000).remainingKobo,'0');
+ assert.equal(rollingAllowance(1,entries,now+day).remainingKobo,'1000000');
+ assert.equal(rollingAllowance(1,entries,now+day+3600000).remainingKobo,'3000000');
+ assert.equal(rollingAllowance(2,[],now).remainingKobo,'10000000');
+ assert.equal(rollingAllowance(3,[],now).remainingKobo,'1000000000');
+});
+test('fiat tiers conform to VFD daily and per-transaction ceilings',()=>{
+ assert.deepEqual(limits,{0:0n,1:3_000_000n,2:10_000_000n,3:1_000_000_000n});
+ assert.deepEqual(transactionLimits,{0:0n,1:3_000_000n,2:10_000_000n,3:100_000_000n});
 });

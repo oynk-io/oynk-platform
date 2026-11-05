@@ -1,0 +1,85 @@
+import assert from 'node:assert/strict';
+import { createHash, createHmac, randomUUID } from 'node:crypto';
+import { readFile } from 'node:fs/promises';
+import { Server } from 'node:http';
+import test from 'node:test';
+
+const listen = (server: Server) => new Promise<number>(resolve => server.listen(0, '127.0.0.1', () => resolve((server.address() as { port: number }).port)));
+const close = (server: Server) => new Promise<void>((resolve, reject) => server.close(error => error ? reject(error) : resolve()));
+
+test('source photos require an active published item; connector previews cannot read another business', { skip: !process.env.MART_TEST_DATABASE_URL }, async () => {
+  const url = new URL(process.env.MART_TEST_DATABASE_URL!);
+  if (url.hostname !== '127.0.0.1' || url.port !== '5433' || url.pathname !== '/oynk_dashboard') throw new Error('Use only the isolated loopback test database.');
+  const schema = `mart_photos_test_${randomUUID().replaceAll('-', '')}`;
+  url.searchParams.set('options', `-c search_path=${schema}`);
+  process.env.DATABASE_URL = url.toString();
+  const { default: express } = await import('express');
+  const { default: sharp } = await import('sharp');
+  const { pool } = await import('../db/pool.js');
+  const { config } = await import('../config.js');
+  const service = await import('./service.js');
+  const media = await import('./media.js');
+  const { martRouter } = await import('./routes.js');
+  config.API_PUBLIC_URL = 'https://api.example.test';
+  config.APP_ENV = 'test';
+  const image = await sharp({ create: { width: 16, height: 16, channels: 3, background: '#227766' } }).webp().toBuffer();
+  let connectionId = '', token = '', sourceReads = 0;
+  const photoId = randomUUID();
+  const source = express();
+  source.get('/api/v3/integrations/oynk-mart/source-inventory/photos/:id', (req, res) => {
+    const path = `/photos/${photoId}`;
+    const timestamp = req.header('x-mart-timestamp');
+    const key = createHash('sha256').update(`oynk-mart-connector:v1:${token}`).digest('hex');
+    const expected = createHmac('sha256', key).update(`mart-source-admin:v1\nGET\n${path}\n${connectionId}\n${timestamp}\n`).digest('hex');
+    assert.equal(req.header('x-mart-connection-id'), connectionId);
+    assert.equal(req.header('x-mart-signature'), expected);
+    assert.equal(req.params.id, photoId);
+    sourceReads++;
+    res.type('image/webp').send(image);
+  });
+  const sourceServer = new Server(source);
+  process.env.MART_LEMONBOOKS_API_URL = `http://127.0.0.1:${await listen(sourceServer)}`;
+  const app = express(); app.use('/api/mart', martRouter);
+  const server = new Server(app), api = `http://127.0.0.1:${await listen(server)}`;
+  try {
+    await pool.query(`CREATE SCHEMA ${schema}`);
+    for (const name of ['002_identity_auth.sql', '038_mart_catalog.sql', '045_mart_connection_approval.sql', '047_mart_storefront_details.sql', '048_mart_store_category.sql', '049_mart_media.sql', '058_mart_storefront_images.sql','059_mart_storefront_contact.sql']) await pool.query(await readFile(new URL(`../db/migrations/${name}`, import.meta.url), 'utf8'));
+    const org = randomUUID(), otherOrg = randomUUID(), user = randomUUID();
+    await pool.query(`INSERT INTO users(id,email,password_hash,first_name,last_name,status) VALUES($1,$2,'x','Photo','Owner','ACTIVE')`, [user, `${user}@example.invalid`]);
+    for (const id of [org, otherOrg]) await pool.query(`INSERT INTO organizations(id,type,status,platform_mode,legal_name) VALUES($1,'BUSINESS','ACTIVE','TEST','Photo shop')`, [id]);
+    const connection = await service.createConnection(org, user, { sourceSystem: 'lemonbooks', sourceTenantId: org, label: 'Inventory' });
+    connectionId = connection.id; token = connection.token;
+    await service.confirmConnection(token);
+    const other = await service.createConnection(otherOrg, user, { sourceSystem: 'lemonbooks', sourceTenantId: otherOrg, label: 'Other inventory' });
+    await service.confirmConnection(other.token);
+    const relative = `/api/mart/source-photos/${connectionId}/${photoId}`;
+    const imageUrl = `${config.API_PUBLIC_URL}${relative}`;
+    const input = { sourceItemId: 'photo-item', revision: 1, kind: 'PRODUCT' as const, title: 'Photographed item', description: '', currency: 'NGN', priceMinor: 50000, quantity: '4', availability: 'IN_STOCK' as const, active: true, published: true, imageUrls: [imageUrl] };
+    const ingest = (revision: number, published: boolean) => service.ingest({ id: connectionId, organization_id: org }, { eventId: `photos-${revision}`, items: [{ ...input, revision, published }] });
+    await ingest(1, true);
+    assert.equal((await fetch(`${api}${relative}`)).status, 404);
+    assert.equal(sourceReads, 0);
+    await service.updateStorefront(org, user, { displayName: 'Photo shop', published: true });
+    const visible = await fetch(`${api}${relative}`);
+    assert.equal(visible.status, 200);
+    assert.equal(visible.headers.get('content-type'), 'image/webp');
+    assert.deepEqual(Buffer.from(await visible.arrayBuffer()), image);
+    assert.equal(sourceReads, 1);
+    assert.equal((await fetch(`${api}/api/mart/source-photos/${connectionId}/${randomUUID()}`)).status, 404);
+    await ingest(2, false);
+    assert.equal((await fetch(`${api}${relative}`)).status, 404);
+    await ingest(3, true);
+    const uploaded = await media.savePhoto(org, user, image, 'image/webp');
+    const preview = `${api}/api/mart/connector/media/${uploaded.id}`;
+    assert.equal((await fetch(preview)).status, 401);
+    assert.equal((await fetch(preview, { headers: { 'x-mart-connector-token': other.token } })).status, 404);
+    assert.equal((await fetch(preview, { headers: { 'x-mart-connector-token': token } })).status, 200);
+    await service.revokeConnection(org, connectionId, user);
+    assert.equal((await fetch(`${api}${relative}`)).status, 404);
+    assert.equal((await fetch(preview, { headers: { 'x-mart-connector-token': token } })).status, 401);
+    assert.equal(sourceReads, 1);
+  } finally {
+    await close(server); await close(sourceServer);
+    await pool.query(`DROP SCHEMA IF EXISTS ${schema} CASCADE`); await pool.end();
+  }
+});

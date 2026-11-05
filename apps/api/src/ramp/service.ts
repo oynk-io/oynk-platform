@@ -76,7 +76,7 @@ export async function decideRampTransaction(input:{transactionId:string;action:'
   const existing=(await db.query('SELECT * FROM ramp_approval_actions WHERE transaction_id=$1',[row.id])).rows[0];
   let transition;try{transition=approvalTransition({state:row.state,approvalState:row.approval_state,riskState:row.risk_state,existingAction:existing?.action},input.action);}catch(error){const code=error instanceof Error?error.message:'APPROVAL_FINAL';const message=code==='APPROVAL_NOT_PENDING'?'This transaction is not awaiting approval.':code==='POLICY_BLOCKED'?'This transaction is blocked by policy and cannot be approved.':'This transaction already has a final approval decision.';throw new RampError(message,409,code);}
   if(transition.idempotent)return (await db.query('SELECT * FROM ramp_transactions WHERE id=$1',[row.id])).rows[0];
-  const executionReady=row.provider_reference||row.onchain_state==='AWAITING_PAYOUT'||row.metadata?.onchainFunded===true;
+  const executionReady=row.provider_reference||row.onchain_state==='AWAITING_PAYOUT'||row.metadata?.onchainFunded===true||(row.metadata?.source==='quick_pay_to_smart'&&row.onchain_state==='AWAITING_FIAT');
   const next=input.action==='APPROVE'?(executionReady?'APPROVED':'CREATED'):'REJECTED';
   await db.query(`INSERT INTO ramp_approval_actions(id,transaction_id,action,operator_user_id,operator_organization_id,note) VALUES($1,$2,$3,$4,$5,$6)`,[randomUUID(),row.id,input.action,input.operatorUserId,input.operatorOrganizationId,input.note?.trim()||null]);
   await db.query(`UPDATE ramp_transactions SET state=$2,approval_state=$3,risk_state=$4,updated_at=NOW() WHERE id=$1`,[row.id,next,next,input.action==='APPROVE'?'CLEAR':'BLOCKED']);
@@ -112,6 +112,50 @@ export async function finishRampExecution(input:{transactionId:string;idempotenc
   if(attempt.state==='SUCCEEDED'||attempt.state==='FAILED')return row;if(attempt.state!=='PROCESSING')throw new RampError('Execution attempt is not processing.',409,'EXECUTION_STATE_INVALID');const state=input.succeeded?'COMPLETED':'FAILED';
   await db.query(`UPDATE ramp_execution_attempts SET state=$2,provider_reference=COALESCE($3,provider_reference),stellar_transaction_hash=COALESCE($4,stellar_transaction_hash),error_code=$5,finished_at=NOW() WHERE id=$1`,[attempt.id,input.succeeded?'SUCCEEDED':'FAILED',input.providerReference??null,input.stellarTransactionHash??null,input.errorCode??null]);
   await db.query(`UPDATE ramp_transactions SET state=$2,provider_reference=COALESCE($3,provider_reference),stellar_transaction_hash=COALESCE($4,stellar_transaction_hash),failure_code=$5,failure_reason=$6,completed_at=CASE WHEN $2='COMPLETED' THEN NOW() ELSE NULL END,updated_at=NOW() WHERE id=$1`,[row.id,state,input.providerReference??null,input.stellarTransactionHash??null,input.errorCode??null,input.errorReason??null]);await event(db,row.id,input.succeeded?'EXECUTION_COMPLETED':'EXECUTION_FAILED',{type:'SYSTEM'},row.state,state,{errorCode:input.errorCode??null});return(await db.query('SELECT * FROM ramp_transactions WHERE id=$1',[row.id])).rows[0];});
+}
+
+/** Persist an off-ramp's terminal on-chain result, consumer intent, execution
+ * attempt, and append-only audit event in one database transaction. */
+export async function finishOfframpExecution(input:{transactionId:string;idempotencyKey:string;succeeded:boolean;providerReference:string;stellarTransactionHash?:string;recoveredFromChain?:boolean}){
+ return withTransaction(async db=>{
+  const attempt=(await db.query('SELECT * FROM ramp_execution_attempts WHERE idempotency_key=$1 AND transaction_id=$2 FOR UPDATE',[input.idempotencyKey,input.transactionId])).rows[0];
+  if(!attempt)throw new RampError('Execution attempt not found.',404,'EXECUTION_NOT_FOUND');
+  const row=(await db.query('SELECT * FROM ramp_transactions WHERE id=$1 FOR UPDATE',[input.transactionId])).rows[0];
+  if(!row)throw new RampError('Ramp transaction not found.',404,'NOT_FOUND');
+  if(attempt.state==='SUCCEEDED'||attempt.state==='FAILED')return row;
+  if(attempt.state!=='PROCESSING')throw new RampError('Execution attempt is not processing.',409,'EXECUTION_STATE_INVALID');
+  const transactionState=input.succeeded?'COMPLETED':'FAILED';
+  const onchainState=input.succeeded?'COMPLETED':'REFUNDED';
+  const intentState=input.succeeded?'completed':'refunded';
+  const errorCode=input.succeeded?null:'PAYOUT_FAILED';
+  const errorReason=input.succeeded?null:'The fiat payout failed and escrowed USDC was refunded.';
+  await db.query(`UPDATE ramp_execution_attempts SET state=$2,provider_reference=$3,stellar_transaction_hash=COALESCE($4,stellar_transaction_hash),error_code=$5,finished_at=NOW() WHERE id=$1`,[attempt.id,input.succeeded?'SUCCEEDED':'FAILED',input.providerReference,input.stellarTransactionHash??null,errorCode]);
+  await db.query(`UPDATE ramp_transactions SET state=$2,onchain_state=$3,provider_reference=$4,stellar_transaction_hash=COALESCE($5,stellar_transaction_hash),failure_code=$6,failure_reason=$7,completed_at=CASE WHEN $2='COMPLETED' THEN NOW() ELSE NULL END,updated_at=NOW() WHERE id=$1`,[row.id,transactionState,onchainState,input.providerReference,input.stellarTransactionHash??null,errorCode,errorReason]);
+  await db.query(`UPDATE consumer_offramp_intents SET state=$2,provider_reference=$3,failure_code=$4,failure_message=$5,completed_at=CASE WHEN $2='completed' THEN NOW() ELSE NULL END,updated_at=NOW() WHERE ramp_transaction_id=$1`,[row.id,intentState,input.providerReference,errorCode,errorReason]);
+  await event(db,row.id,input.succeeded?'OFFRAMP_COMPLETED':'OFFRAMP_REFUNDED',{type:'SYSTEM'},row.state,transactionState,{providerReference:input.providerReference,stellarTransactionHash:input.stellarTransactionHash??null,onchainState,recoveredFromChain:Boolean(input.recoveredFromChain)});
+  return(await db.query('SELECT * FROM ramp_transactions WHERE id=$1',[row.id])).rows[0];
+ });
+}
+
+export async function recordPostRefundReconciliation(input:{transactionId:string;outcome:'PAYOUT_FAILED'|'PAYOUT_SUCCEEDED';providerReference:string}){
+ return withTransaction(async db=>{
+  const row=(await db.query('SELECT * FROM ramp_transactions WHERE id=$1 FOR UPDATE',[input.transactionId])).rows[0];
+  if(!row)throw new RampError('Ramp transaction not found.',404,'NOT_FOUND');
+  const providerStatus=input.outcome==='PAYOUT_FAILED'?'FAILED':'SUCCESS_AFTER_REFUND';
+  const reconciliationRequired=input.outcome==='PAYOUT_SUCCEEDED';
+  await db.query(`UPDATE ramp_transactions SET provider_status=$2,metadata=metadata||$3::jsonb,updated_at=NOW() WHERE id=$1`,[row.id,providerStatus,JSON.stringify({reconciliationRequired,reconciliationReason:reconciliationRequired?'VFD payout completed after on-chain refund':null,reconciledAt:new Date().toISOString()})]);
+  await event(db,row.id,input.outcome==='PAYOUT_FAILED'?'POST_REFUND_PAYOUT_CONFIRMED_FAILED':'POST_REFUND_PAYOUT_SUCCEEDED',{type:'SYSTEM'},row.state,row.state,{providerReference:input.providerReference,reconciliationRequired});
+  return(await db.query('SELECT * FROM ramp_transactions WHERE id=$1',[row.id])).rows[0];
+ });
+}
+
+/** Finish one provider phase without marking the entire ramp complete. Used
+ * when fiat must settle before a separate on-chain completion phase. */
+export async function finishRampPhase(input:{transactionId:string;idempotencyKey:string;succeeded:boolean;nextState?:'APPROVED';providerReference?:string;errorCode?:string;errorReason?:string}){
+ return withTransaction(async db=>{const attempt=(await db.query('SELECT * FROM ramp_execution_attempts WHERE idempotency_key=$1 AND transaction_id=$2 FOR UPDATE',[input.idempotencyKey,input.transactionId])).rows[0];if(!attempt)throw new RampError('Execution attempt not found.',404,'EXECUTION_NOT_FOUND');const row=(await db.query('SELECT * FROM ramp_transactions WHERE id=$1 FOR UPDATE',[input.transactionId])).rows[0];
+  if(attempt.state==='SUCCEEDED'||attempt.state==='FAILED')return row;if(attempt.state!=='PROCESSING')throw new RampError('Execution attempt is not processing.',409,'EXECUTION_STATE_INVALID');const state=input.succeeded?(input.nextState??'APPROVED'):'FAILED';
+  await db.query(`UPDATE ramp_execution_attempts SET state=$2,provider_reference=COALESCE($3,provider_reference),error_code=$4,finished_at=NOW() WHERE id=$1`,[attempt.id,input.succeeded?'SUCCEEDED':'FAILED',input.providerReference??null,input.errorCode??null]);
+  await db.query(`UPDATE ramp_transactions SET state=$2,provider_reference=COALESCE($3,provider_reference),failure_code=$4,failure_reason=$5,updated_at=NOW() WHERE id=$1`,[row.id,state,input.providerReference??null,input.errorCode??null,input.errorReason??null]);await event(db,row.id,input.succeeded?'EXECUTION_PHASE_COMPLETED':'EXECUTION_FAILED',{type:'SYSTEM'},row.state,state,{operation:attempt.operation,errorCode:input.errorCode??null});return(await db.query('SELECT * FROM ramp_transactions WHERE id=$1',[row.id])).rows[0];});
 }
 
 export async function listRampTransactions(filters:{direction?:string;state?:string;approvalState?:string;provider?:string;query?:string;limit?:number;offset?:number}){

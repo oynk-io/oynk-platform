@@ -13,7 +13,7 @@ test('funding database: identity, concurrency, exact amount, replay and reconcil
  const keys=generateKeyPairSync('rsa',{modulusLength:2048});
  process.env.SOCKETFI_CLIENT_SECRET='fixture-client-secret';
  const {pool}=await import('../db/pool.js'); const service=await import('./service.js');
- const {consumerIdentity}=await import('./auth.js'); const {validSignature}=await import('./paystack.js');
+ const {consumerIdentity}=await import('./auth.js'); const {validSignature}=await import('./paystack.js'); const {secureHash}=await import('../auth/security.js');
  const originalFetch=globalThis.fetch;
  try {
   globalThis.fetch=async () => Response.json({alg:'RS256',issuer:'https://socket.fi',kid:'fixture-key',publicKey:keys.publicKey.export({type:'spki',format:'pem'}).toString()});
@@ -25,7 +25,7 @@ test('funding database: identity, concurrency, exact amount, replay and reconcil
   await pool.query(await readFile(new URL('../db/migrations/015_deposit_failures.sql',import.meta.url),'utf8'));
   const identity={subject:'fixture',clientId:'sf_client_live_u3zqxglr2dhozi7z5z73o3wchwkm',network:'TESTNET' as const,wallet:'CBIELTK6YBZJU5UP2WWQEUCYKLPU6AUNZ2BQ4WWFEIE3USCIHMXQDAMA',authMethod:'passkey' as const};
   const token=await new SignJWT({type:'access',clientId:identity.clientId,network:identity.network,activeWallet:identity.wallet,wallet:{TESTNET:identity.wallet},authMethods:{passkey:true,evm:false}}).setProtectedHeader({alg:'RS256'}).setIssuer('https://socket.fi').setAudience(identity.clientId).setSubject(identity.subject).setIssuedAt().setExpirationTime('1h').sign(keys.privateKey);
-  assert.deepEqual(await consumerIdentity(`Bearer ${token}`),identity);
+  assert.deepEqual(await consumerIdentity(`Bearer ${token}`),{...identity,issuedAt:(await import('jose')).decodeJwt(token).iat,tokenId:secureHash(`consumer-access-token:v1:${token}`)});
   await assert.rejects(()=>consumerIdentity(`Bearer ${token.slice(0,-10)}abcdefghij`));
   const raw=Buffer.from('{"event":"charge.success"}'); const sig=createHmac('sha512','sk_test_fixture_not_a_key').update(raw).digest('hex');
   assert.equal(validSignature(raw,sig),true); assert.equal(validSignature(Buffer.from('{}'),sig),false);

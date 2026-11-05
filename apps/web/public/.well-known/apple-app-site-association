@@ -1,0 +1,17 @@
+{
+  "applinks": {
+    "details": [
+      {
+        "appIDs": [
+          "GC29BX444D.io.oynk.app"
+        ],
+        "components": [
+          {
+            "/": "/??????????",
+            "comment": "Opaque ten-character Oynk invite codes; the app validates the code alphabet."
+          }
+        ]
+      }
+    ]
+  }
+}

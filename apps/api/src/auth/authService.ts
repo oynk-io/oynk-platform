@@ -41,7 +41,13 @@ export async function issueOtp(input: { user: Pick<UserRow,"id"|"email"|"first_n
   const purposeCopy = input.purpose === "SIGN_IN" ? "sign in" : input.purpose === "PASSWORD_RESET" ? "reset your password" : "verify your email";
   const template=otpEmail({ firstName: input.user.first_name, code, purpose: purposeCopy, expiresMinutes: ttl });
   if(input.purpose==="PASSWORD_RESET"){
-    const resetUrl=`${config.CONSOLE_SITE_URL}/reset-password?challenge=${encodeURIComponent(id)}`;
+    const internalMembership=await pool.query<{is_internal:boolean}>(`SELECT EXISTS(
+      SELECT 1 FROM organization_memberships membership
+      JOIN organizations organization ON organization.id=membership.organization_id
+      WHERE membership.user_id=$1 AND membership.status='ACTIVE' AND organization.type='INTERNAL'
+    ) AS is_internal`,[input.user.id]);
+    const resetSite=internalMembership.rows[0]?.is_internal?config.CONTROL_SITE_URL:config.CONSOLE_SITE_URL;
+    const resetUrl=`${resetSite}/reset-password?challenge=${encodeURIComponent(id)}`;
     template.text+=`\n\nContinue at: ${resetUrl}`;
     template.html=template.html.replace("</body>",`<p style="text-align:center"><a href="${resetUrl}">Continue password reset</a></p></body>`);
   }
@@ -49,7 +55,7 @@ export async function issueOtp(input: { user: Pick<UserRow,"id"|"email"|"first_n
   return { challengeId: id, purpose: input.purpose, expiresAt: expiresAt.toISOString(), resendAvailableAt: resendAt.toISOString(), destinationHint: destinationHint(input.user.email), ...(config.APP_ENV === "development" && config.EMAIL_PROVIDER === "development" ? { developmentCode: code } : {}) };
 }
 
-export async function register(input: { email: string; password: string; firstName: string; lastName: string; phone: string; legalName: string; tradingName?: string; registrationCountry: string; operatingCountry: string; type: Exclude<OrganizationType,"INTERNAL">; ip?: string; requestId?: string }): Promise<OtpChallengeResponse> {
+export async function register(input: { email: string; password: string; firstName: string; lastName: string; phone: string; legalName: string; tradingName?: string; registrationCountry: string; operatingCountry: string; connectInventoryManagement?: boolean; type: Exclude<OrganizationType,"INTERNAL">; ip?: string; requestId?: string }): Promise<OtpChallengeResponse> {
   const email = normalizeEmail(input.email);
   const passwordHash = await hashPassword(input.password);
   const userId = randomUUID();
@@ -59,7 +65,7 @@ export async function register(input: { email: string; password: string; firstNa
   try {
     await client.query("BEGIN");
     await client.query(`INSERT INTO users(id,email,password_hash,first_name,last_name,phone,status) VALUES($1,$2,$3,$4,$5,$6,'PENDING_VERIFICATION')`, [userId,email,passwordHash,input.firstName.trim(),input.lastName.trim(),input.phone.trim()]);
-    await client.query(`INSERT INTO organizations(id,type,status,platform_mode,legal_name,trading_name,registration_country,primary_operating_country) VALUES($1,$2,'EMAIL_VERIFICATION_REQUIRED',$3,$4,$5,$6,$7)`, [organizationId,input.type,config.PLATFORM_MODE,input.legalName.trim(),input.tradingName?.trim() || null,input.registrationCountry,input.operatingCountry]);
+    await client.query(`INSERT INTO organizations(id,type,status,platform_mode,legal_name,trading_name,registration_country,primary_operating_country,inventory_management_requested) VALUES($1,$2,'EMAIL_VERIFICATION_REQUIRED',$3,$4,$5,$6,$7,$8)`, [organizationId,input.type,config.PLATFORM_MODE,input.legalName.trim(),input.tradingName?.trim() || null,input.registrationCountry,input.operatingCountry,input.type==='BUSINESS'&&input.connectInventoryManagement!==false]);
     await client.query(`INSERT INTO organization_memberships(id,user_id,organization_id,role_name,status) VALUES($1,$2,$3,$4,'ACTIVE')`, [randomUUID(),userId,organizationId,role]);
     await audit(client,{actorUserId:userId,organizationId,action:"SIGN_UP",resourceType:"ORGANIZATION",resourceId:organizationId,result:"SUCCESS",requestId:input.requestId,ip:input.ip,metadata:{type:input.type}});
     await client.query("COMMIT");
@@ -73,7 +79,7 @@ export async function beginLogin(emailInput: string, password: string, ip?: stri
   const user = result.rows[0];
   const valid = await verifyPassword(password, user?.password_hash ?? DUMMY_PASSWORD_HASH);
   if (!user || !valid || user.status !== "ACTIVE") {
-    await pool.query(`INSERT INTO audit_logs(id,actor_user_id,action,resource_type,resource_id,result,ip_address,metadata) VALUES($1,$2,'LOGIN_FAILED','USER',$2,'FAILURE',$3,$4)`,[randomUUID(),user?.id??null,ip??null,{reason:user?.status!=="ACTIVE"?"ACCOUNT_STATE":"INVALID_CREDENTIALS"}]);
+    await pool.query(`INSERT INTO audit_logs(id,actor_user_id,action,resource_type,resource_id,result,ip_address,metadata) VALUES($1,$2,'LOGIN_FAILED','USER',$3,'FAILURE',$4,$5)`,[randomUUID(),user?.id??null,user?.id??null,ip??null,{reason:user?.status!=="ACTIVE"?"ACCOUNT_STATE":"INVALID_CREDENTIALS"}]);
     return null;
   }
   return issueOtp({ user, purpose:"SIGN_IN", ip });

@@ -3,6 +3,7 @@ import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 
 export default defineConfig({
+  define: { "import.meta.env.VITE_OYNK_SURFACE": JSON.stringify("console") },
   plugins: [react(), tailwindcss()],
   server: {
     host: "0.0.0.0",
