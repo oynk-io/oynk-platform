@@ -83,7 +83,7 @@ if (!config.CONSUMER_ONLY) {
 app.use('/api/consumer',consumerRouter);
 app.use('/api/terminal',terminalRouter);
 app.use('/api/mart',martRouter);
-app.use('/api/oynk-go',oynkGoRouter);
+if(config.OYNK_GO_ENABLED)app.use('/api/oynk-go',oynkGoRouter);
 app.use('/api/newsletter',newsletterRouter);
 // Control APIs remain available in consumer-only deployments, but are guarded
 // by internal-organization RBAC and CSRF on every mutation.

@@ -20,6 +20,8 @@ dotenv.config({
 	quiet: true,
 });
 
+const developmentFeatureDefault = process.env.APP_ENV === "production" ? "false" : "true";
+
 const schema = z.object({
 	DATABASE_URL: z.string().min(1),
 
@@ -104,7 +106,10 @@ const schema = z.object({
   // Enable only behind a proxy that overwrites forwarded client headers.
   TRUST_PROXY_HOPS: z.coerce.number().int().min(0).max(3).default(0),
 	PLATFORM_MODE: z.enum(["SANDBOX", "TEST", "LIVE"]).default("SANDBOX"),
-	MART_LAYAWAY_ENABLED: z.enum(["true", "false"]).default("true").transform((value) => value === "true"),
+	MART_LAYAWAY_ENABLED: z.enum(["true", "false"]).default(developmentFeatureDefault).transform((value) => value === "true"),
+	CONSUMER_TIER3_ENABLED: z.enum(["true", "false"]).default(developmentFeatureDefault).transform((value) => value === "true"),
+	CONSUMER_OFFLINE_PAY_ENABLED: z.enum(["true", "false"]).default(developmentFeatureDefault).transform((value) => value === "true"),
+	OYNK_GO_ENABLED: z.enum(["true", "false"]).default(developmentFeatureDefault).transform((value) => value === "true"),
 	PUBLIC_SITE_URL: z.string().url().default("http://localhost:5173"),
 	REFERRAL_PUBLIC_URL: z.string().url().default("https://oynk.io"),
 	CONSOLE_SITE_URL: z.string().url().default("http://localhost:5174"),

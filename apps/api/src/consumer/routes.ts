@@ -19,7 +19,12 @@ import { activeGoal, GoalError, saveGoal } from './goals.js';
 import { configureOfflineAllowance, createOfflineConfigurationChallenge, quickPayBalance } from './quickPay.js';
 import { confirmQuickPayToSmart, createQuickPayConversionQuote, createQuickPayToSmartQuote, provisionQuickPayDepositAccount, quickPayDepositAccount, quickPayLimits, quickPayToSmartStatus, upgradeQuickPayTier } from './quickPayFunding.js';
 import { tier3DocumentStatus, uploadTier3Document } from './tier3Documents.js';
+import { config } from '../config.js';
 export const consumerRouter = express.Router();
+const unavailable=(enabled:boolean,handler:express.RequestHandler):express.RequestHandler=>(req,res,next)=>{
+ if(!enabled){res.status(404).json({message:'This feature is not available in this release.'});return;}
+ return handler(req,res,next);
+};
 consumerRouter.use((_req,res,next) => { res.setHeader('Cache-Control','no-store'); next(); });
 consumerRouter.post('/diagnostics',async(req,res,next)=>{try{
  await consumePhoneRate(req.ip??'unknown','DIAGNOSTIC',100);
@@ -55,12 +60,12 @@ consumerRouter.get('/balance', async (_req,res) => {
 consumerRouter.get('/quick-pay', async (_req,res,next) => {
  try { res.json(await quickPayBalance(res.locals.identity)); } catch (e) { next(e); }
 });
-consumerRouter.post('/quick-pay/offline', async (req,res,next) => {
+consumerRouter.post('/quick-pay/offline', unavailable(config.CONSUMER_OFFLINE_PAY_ENABLED, async (req,res,next) => {
  try { res.json(await configureOfflineAllowance(res.locals.identity, req.body)); } catch (e) { next(e); }
-});
-consumerRouter.post('/quick-pay/offline/challenges', async (req,res,next) => {
+}));
+consumerRouter.post('/quick-pay/offline/challenges', unavailable(config.CONSUMER_OFFLINE_PAY_ENABLED, async (req,res,next) => {
  try { res.status(201).json(await createOfflineConfigurationChallenge(res.locals.identity, req.body)); } catch (e) { next(e); }
-});
+}));
 consumerRouter.get('/quick-pay/deposit-account', async (_req,res,next) => {
  try { res.json(await quickPayDepositAccount(res.locals.identity)); } catch (e) { next(e); }
 });
@@ -68,8 +73,8 @@ consumerRouter.post('/quick-pay/deposit-account', async (req,res,next) => {
  try { res.json(await provisionQuickPayDepositAccount(res.locals.identity,req.body)); } catch (e) { next(e); }
 });
 consumerRouter.post('/quick-pay/tier',async(req,res,next)=>{try{res.json(await upgradeQuickPayTier(res.locals.identity,req.body));}catch(e){next(e);}});
-consumerRouter.get('/quick-pay/tier-documents',async(_req,res,next)=>{try{res.json(await tier3DocumentStatus(res.locals.identity));}catch(e){next(e);}});
-consumerRouter.post('/quick-pay/tier-documents',async(req,res,next)=>{try{res.json(await uploadTier3Document(res.locals.identity,req.body));}catch(e){next(e);}});
+consumerRouter.get('/quick-pay/tier-documents',unavailable(config.CONSUMER_TIER3_ENABLED,async(_req,res,next)=>{try{res.json(await tier3DocumentStatus(res.locals.identity));}catch(e){next(e);}}));
+consumerRouter.post('/quick-pay/tier-documents',unavailable(config.CONSUMER_TIER3_ENABLED,async(req,res,next)=>{try{res.json(await uploadTier3Document(res.locals.identity,req.body));}catch(e){next(e);}}));
 consumerRouter.get('/quick-pay/limits', async (_req,res,next) => {
  try { res.json(await quickPayLimits(res.locals.identity)); } catch (e) { next(e); }
 });

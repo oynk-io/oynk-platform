@@ -209,6 +209,7 @@ export async function provisionQuickPayDepositAccount(identity:Identity,raw:unkn
 
 export async function upgradeQuickPayTier(identity:Identity,raw:unknown){
  const parsed=upgradeInput.safeParse(raw);if(!parsed.success)throw new FundingError('Enter the required verification details and confirm your consent.');
+ if(parsed.data.targetTier===3&&!config.CONSUMER_TIER3_ENABLED)throw new FundingError('Tier 3 upgrades are not available in this release.',404);
  if(!vfdDepositAccountProvider.configured)throw new FundingError('Oynk Pay verification is being configured.',503);
  if((vfdDepositAccountProvider.environment==='live')!==(identity.network==='PUBLIC'))throw new FundingError('The bank-account environment does not match this Oynk account.',409);
  const claim=await transaction(async db=>{
