@@ -107,6 +107,13 @@ const schema = z.object({
   TRUST_PROXY_HOPS: z.coerce.number().int().min(0).max(3).default(0),
 	PLATFORM_MODE: z.enum(["SANDBOX", "TEST", "LIVE"]).default("SANDBOX"),
 	MART_LAYAWAY_ENABLED: z.enum(["true", "false"]).default(developmentFeatureDefault).transform((value) => value === "true"),
+	MART_GLOBAL_ENABLED: z.enum(["true", "false"]).default(developmentFeatureDefault).transform((value) => value === "true"),
+	EBAY_BROWSE_ENABLED: z.enum(["true", "false"]).default("false").transform((value) => value === "true"),
+	EBAY_CLIENT_ID: z.string().default(""),
+	EBAY_CLIENT_SECRET: z.string().default(""),
+	EBAY_MARKETPLACE_ID: z.string().min(2).default("EBAY_US"),
+	EBAY_API_URL: z.string().url().default("https://api.ebay.com"),
+	EBAY_OAUTH_URL: z.string().url().default("https://api.ebay.com/identity/v1/oauth2/token"),
 	CONSUMER_TIER3_ENABLED: z.enum(["true", "false"]).default(developmentFeatureDefault).transform((value) => value === "true"),
 	CONSUMER_OFFLINE_PAY_ENABLED: z.enum(["true", "false"]).default(developmentFeatureDefault).transform((value) => value === "true"),
 	OYNK_GO_ENABLED: z.enum(["true", "false"]).default(developmentFeatureDefault).transform((value) => value === "true"),
@@ -181,6 +188,9 @@ if (config.APP_ENV === "production" && config.PHONE_OTP_DEVELOPMENT_CODE_VISIBLE
 }
 if (config.PHONE_OTP_PROVIDER === "africastalking" && (!config.AFRICASTALKING_API_KEY || !config.AFRICASTALKING_USERNAME)) {
 	throw new Error("Africa's Talking phone OTP requires a username and API key");
+}
+if (config.EBAY_BROWSE_ENABLED && (!config.EBAY_CLIENT_ID || !config.EBAY_CLIENT_SECRET)) {
+	throw new Error("eBay Browse requires EBAY_CLIENT_ID and EBAY_CLIENT_SECRET");
 }
 if (config.APP_ENV === "production" && config.AFRICASTALKING_USERNAME === "sandbox") {
 	throw new Error("A production Africa's Talking username is required");

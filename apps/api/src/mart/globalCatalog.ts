@@ -1,0 +1,55 @@
+import { createHash, randomUUID } from 'node:crypto';
+import { config } from '../config.js';
+import { pool } from '../db/pool.js';
+import { MartError } from './service.js';
+
+type EbayItemSummary={itemId?:string;title?:string;itemWebUrl?:string;condition?:string;itemEndDate?:string;image?:{imageUrl?:string};additionalImages?:Array<{imageUrl?:string}>;price?:{value?:string;currency?:string};shippingOptions?:Array<{shippingCost?:{value?:string;currency?:string}}> ;seller?:{username?:string;feedbackPercentage?:string;feedbackScore?:number};buyingOptions?:string[];categories?:Array<{categoryName?:string}>};
+type Market={code:string;provider:string;displayName:string;countryCode:string;currency:string;marketplaceId:string;status:string;managedBy:string};
+let cachedToken:{value:string;expiresAt:number}|null=null;
+const searchPattern=(value:string)=>`%${value.trim().split(/\s+/).map(part=>part.replace(/[\\%_]/g,'\\$&')).join('%')}%`;
+const toMinor=(value?:string)=>String(Math.max(0,Math.round(Number(value??0)*100)));
+
+function requireGlobal(){if(!config.MART_GLOBAL_ENABLED)throw new MartError('Global shopping is not available yet.',404,'GLOBAL_MART_DISABLED');}
+async function findMarket(code:string){const result=await pool.query<Market>(`SELECT code,provider,display_name AS "displayName",country_code AS "countryCode",currency,marketplace_id AS "marketplaceId",status,managed_by AS "managedBy" FROM mart_source_markets WHERE code=$1 AND status='ACTIVE'`,[code]);if(!result.rows[0])throw new MartError('This global market is not available.',404,'GLOBAL_MARKET_UNAVAILABLE');return result.rows[0];}
+async function ebayAccessToken(){
+ if(cachedToken&&cachedToken.expiresAt>Date.now()+60_000)return cachedToken.value;
+ const authorization=Buffer.from(`${config.EBAY_CLIENT_ID}:${config.EBAY_CLIENT_SECRET}`).toString('base64');
+ const response=await fetch(config.EBAY_OAUTH_URL,{method:'POST',headers:{Authorization:`Basic ${authorization}`,'Content-Type':'application/x-www-form-urlencoded'},body:new URLSearchParams({grant_type:'client_credentials',scope:'https://api.ebay.com/oauth/api_scope'}),signal:AbortSignal.timeout(10_000)});
+ if(!response.ok)throw new MartError('eBay discovery is temporarily unavailable.',503,'GLOBAL_PROVIDER_UNAVAILABLE');
+ const body=await response.json() as {access_token?:string;expires_in?:number};if(!body.access_token)throw new MartError('eBay discovery is temporarily unavailable.',503,'GLOBAL_PROVIDER_UNAVAILABLE');
+ cachedToken={value:body.access_token,expiresAt:Date.now()+Math.max(60,body.expires_in??7200)*1000};return cachedToken.value;
+}
+
+async function refreshEbay(source:Market,query:string,limit:number){
+ if(!config.EBAY_BROWSE_ENABLED||source.provider!=='EBAY')return;
+ const url=new URL('/buy/browse/v1/item_summary/search',config.EBAY_API_URL);url.searchParams.set('q',query.trim()||'electronics');url.searchParams.set('limit',String(Math.min(limit,50)));
+ const response=await fetch(url,{headers:{Authorization:`Bearer ${await ebayAccessToken()}`,'X-EBAY-C-MARKETPLACE-ID':source.marketplaceId},signal:AbortSignal.timeout(12_000)});
+ if(!response.ok){console.warn('[mart-global] eBay Browse rejected search',{status:response.status});throw new MartError('eBay discovery is temporarily unavailable.',503,'GLOBAL_PROVIDER_UNAVAILABLE');}
+ const body=await response.json() as {itemSummaries?:EbayItemSummary[]};const db=await pool.connect();
+ try{await db.query('BEGIN');
+  for(const item of body.itemSummaries??[]){
+   const seller=item.seller?.username?.trim(),sourceItemId=item.itemId?.trim(),title=item.title?.trim(),sourceUrl=item.itemWebUrl?.trim();if(!seller||!sourceItemId||!title||!sourceUrl||!item.price?.currency)continue;
+   const store=await db.query(`INSERT INTO mart_global_storefronts(id,market_code,source_seller_id,display_name,rating,feedback_count,last_synced_at) VALUES($1,$2,$3,$3,$4,$5,NOW()) ON CONFLICT(market_code,source_seller_id) DO UPDATE SET rating=EXCLUDED.rating,feedback_count=EXCLUDED.feedback_count,last_synced_at=NOW(),updated_at=NOW() RETURNING id`,[randomUUID(),source.code,seller,item.seller?.feedbackPercentage?Number(item.seller.feedbackPercentage):null,item.seller?.feedbackScore??null]);
+   const images=[item.image?.imageUrl,...(item.additionalImages??[]).map(image=>image.imageUrl)].filter((value):value is string=>Boolean(value)).slice(0,8);
+   const payload={sourceItemId,title,sourceUrl,condition:item.condition??null,price:item.price,shipping:item.shippingOptions?.[0]?.shippingCost??null,buyingOptions:item.buyingOptions??[],images,seller};
+   await db.query(`INSERT INTO mart_global_items(id,market_code,storefront_id,source_item_id,source_url,title,category,image_urls,currency,price_minor,shipping_minor,availability,buying_options,condition,source_ends_at,source_payload_hash,last_synced_at) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,'AVAILABLE',$12,$13,$14,$15,NOW()) ON CONFLICT(market_code,source_item_id) DO UPDATE SET storefront_id=EXCLUDED.storefront_id,source_url=EXCLUDED.source_url,title=EXCLUDED.title,category=EXCLUDED.category,image_urls=EXCLUDED.image_urls,currency=EXCLUDED.currency,price_minor=EXCLUDED.price_minor,shipping_minor=EXCLUDED.shipping_minor,availability='AVAILABLE',buying_options=EXCLUDED.buying_options,condition=EXCLUDED.condition,source_ends_at=EXCLUDED.source_ends_at,source_payload_hash=EXCLUDED.source_payload_hash,last_synced_at=NOW(),updated_at=NOW()`,[randomUUID(),source.code,store.rows[0].id,sourceItemId,sourceUrl,title,item.categories?.[0]?.categoryName??null,JSON.stringify(images),item.price.currency,toMinor(item.price.value),item.shippingOptions?.[0]?.shippingCost?toMinor(item.shippingOptions[0].shippingCost?.value):null,JSON.stringify(item.buyingOptions??[]),item.condition??null,item.itemEndDate??null,createHash('sha256').update(JSON.stringify(payload)).digest('hex')]);
+  }
+  await db.query('COMMIT');
+ }catch(error){await db.query('ROLLBACK');throw error;}finally{db.release();}
+}
+
+export async function globalMarkets(){requireGlobal();const result=await pool.query<Market>(`SELECT code,provider,display_name AS "displayName",country_code AS "countryCode",currency,marketplace_id AS "marketplaceId",status,managed_by AS "managedBy" FROM mart_source_markets WHERE status='ACTIVE' ORDER BY display_name`);return{markets:result.rows};}
+function publicOffer(row:Record<string,unknown>){return{id:row.id,market:'GLOBAL',sourceMarketCode:row.market_code,sourceMarketName:row.market_name,sourceProvider:row.provider,sourceUrl:row.source_url,sourceItemId:row.source_item_id,merchantId:row.storefront_id,merchantName:row.store_name,merchantVerified:false,merchantCategory:row.category??'global',merchantServiceArea:row.country_code,kind:'PRODUCT',title:row.title,description:row.description??'',category:row.category,imageUrls:Array.isArray(row.image_urls)?row.image_urls:[],currency:row.currency,priceMinor:String(row.price_minor),shippingMinor:row.shipping_minor===null?null:String(row.shipping_minor),availability:row.availability,quantity:null,condition:row.condition,buyingOptions:Array.isArray(row.buying_options)?row.buying_options:[],sourceEndsAt:row.source_ends_at,checkoutAvailable:false,layaway:{eligible:false,serviceFeeMinor:'0',maxMonths:0,durations:[]}};}
+
+export async function globalOffers(input:{marketCode:string;query:string;limit:number;after?:string;storeId?:string}){
+ requireGlobal();const source=await findMarket(input.marketCode);await refreshEbay(source,input.query,Math.max(input.limit,24));
+ const result=await pool.query(`SELECT i.*,s.display_name AS store_name,m.display_name AS market_name,m.provider,m.country_code FROM mart_global_items i JOIN mart_global_storefronts s ON s.id=i.storefront_id JOIN mart_source_markets m ON m.code=i.market_code WHERE i.market_code=$1 AND i.availability='AVAILABLE' AND s.status='ACTIVE' AND ($2::uuid IS NULL OR i.storefront_id=$2) AND ($3::text='' OR (coalesce(i.title,'')||' '||coalesce(i.description,'')||' '||coalesce(i.category,'')||' '||s.display_name) ILIKE $4) AND ($5::uuid IS NULL OR i.id<$5) ORDER BY i.id DESC LIMIT $6`,[input.marketCode,input.storeId??null,input.query.trim(),searchPattern(input.query),input.after??null,input.limit+1]);
+ const rows=result.rows.slice(0,input.limit);return{items:rows.map(publicOffer),nextCursor:result.rows.length>input.limit?rows.at(-1)?.id??null:null};
+}
+export async function globalStores(input:{marketCode:string;query:string;limit:number;after?:string}){
+ requireGlobal();const source=await findMarket(input.marketCode);await refreshEbay(source,input.query,Math.max(input.limit,24));
+ const result=await pool.query(`SELECT s.id,s.display_name AS name,s.description,s.image_url AS "imageUrl",s.source_url AS "sourceUrl",s.rating,s.feedback_count AS "feedbackCount",m.code AS "sourceMarketCode",m.display_name AS "sourceMarketName",m.provider AS "sourceProvider",m.country_code AS "serviceArea",FALSE AS verified,COUNT(i.id)::int AS "itemCount" FROM mart_global_storefronts s JOIN mart_source_markets m ON m.code=s.market_code JOIN mart_global_items i ON i.storefront_id=s.id AND i.availability='AVAILABLE' WHERE s.market_code=$1 AND s.status='ACTIVE' AND ($2::uuid IS NULL OR s.id<$2) GROUP BY s.id,m.code,m.display_name,m.provider,m.country_code HAVING ($3::text='' OR s.display_name ILIKE $4 OR bool_or((coalesce(i.title,'')||' '||coalesce(i.category,'')) ILIKE $4)) ORDER BY s.id DESC LIMIT $5`,[input.marketCode,input.after??null,input.query.trim(),searchPattern(input.query),input.limit+1]);
+ const rows=result.rows.slice(0,input.limit).map(row=>({...row,market:'GLOBAL',category:'global'}));return{stores:rows,nextCursor:result.rows.length>input.limit?rows.at(-1)?.id??null:null};
+}
+export async function globalStore(id:string){requireGlobal();const result=await pool.query(`SELECT s.id,s.display_name AS name,s.description,s.image_url AS "imageUrl",s.source_url AS "sourceUrl",s.rating,s.feedback_count AS "feedbackCount",m.code AS "sourceMarketCode",m.display_name AS "sourceMarketName",m.provider AS "sourceProvider",m.country_code AS "serviceArea",FALSE AS verified,COUNT(i.id)::int AS "itemCount" FROM mart_global_storefronts s JOIN mart_source_markets m ON m.code=s.market_code JOIN mart_global_items i ON i.storefront_id=s.id AND i.availability='AVAILABLE' WHERE s.id=$1 AND s.status='ACTIVE' GROUP BY s.id,m.code,m.display_name,m.provider,m.country_code`,[id]);if(!result.rows[0])throw new MartError('Global storefront not found.',404,'GLOBAL_STOREFRONT_UNAVAILABLE');return{...result.rows[0],market:'GLOBAL',category:'global'};}
+export async function globalOffer(id:string){requireGlobal();const result=await pool.query(`SELECT i.*,s.display_name AS store_name,m.display_name AS market_name,m.provider,m.country_code FROM mart_global_items i JOIN mart_global_storefronts s ON s.id=i.storefront_id JOIN mart_source_markets m ON m.code=i.market_code WHERE i.id=$1 AND i.availability='AVAILABLE' AND s.status='ACTIVE'`,[id]);if(!result.rows[0])throw new MartError('Global item not found or no longer available.',404,'GLOBAL_OFFER_UNAVAILABLE');return publicOffer(result.rows[0]);}

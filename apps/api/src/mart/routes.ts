@@ -15,11 +15,13 @@ import { authenticateConnection, confirmConnection, createConnection, discover, 
 import { confirmReceipt, createDispute, fulfillmentTimeline, verifyHandoff } from './fulfillment.js';
 import { businessNotifications, consumerNotifications, readBusinessNotification, readConsumerNotification, registerPushDevice, unregisterPushDevice } from './notifications.js';
 import { merchantCancelPaidOrder, refundsForOrder } from './refunds.js';
+import { globalMarkets, globalOffer, globalOffers, globalStore, globalStores } from './globalCatalog.js';
 
 export const martRouter=express.Router();
 const uuid=z.uuid();
 const storeCategory=z.enum(['electronics','supermarket','restaurants','food_kitchens','wholesale','fashion','home','health','services','other']);
 const discoverySchema=z.object({q:z.string().trim().max(120).default(''),limit:z.coerce.number().int().min(1).max(50).default(20),after:uuid.optional(),storeId:uuid.optional(),category:storeCategory.optional()});
+const globalDiscoverySchema=z.object({market:z.string().regex(/^[a-z][a-z0-9_]{2,39}$/).default('ebay_us'),q:z.string().trim().max(120).default(''),limit:z.coerce.number().int().min(1).max(50).default(20),after:uuid.optional(),storeId:uuid.optional()});
 const merchantItemsSchema=z.object({limit:z.coerce.number().int().min(1).max(100).default(50),after:uuid.optional(),connectionId:uuid.optional()});
 const fulfillmentSchema=z.object({method:z.enum(['PICKUP','DISPATCH']),recipientName:z.string().trim().min(2).max(120),recipientPhone:z.string().trim().min(8).max(20),deliveryAddress:z.string().trim().max(500).optional(),instructions:z.string().trim().max(500).optional()}).strict();
 
@@ -36,6 +38,12 @@ function run(action:(req:Request,res:Response)=>Promise<void>){return(req:Reques
   if(error instanceof MartError){res.status(error.status).json({error:error.message,code:error.code});return;}
   console.error('[mart] request failed',{code:(error as {code?:string}).code??'UNKNOWN'});res.status(503).json({error:'Mart is temporarily unavailable.',code:'MART_UNAVAILABLE'});
  });};}
+
+martRouter.get('/global/markets',run(async(_req,res)=>{res.setHeader('Cache-Control','public,max-age=60');res.json(await globalMarkets());}));
+martRouter.get('/global/offers',run(async(req,res)=>{const input=globalDiscoverySchema.parse(req.query);res.setHeader('Cache-Control','public,max-age=15');res.json(await globalOffers({marketCode:input.market,query:input.q,limit:input.limit,after:input.after,storeId:input.storeId}));}));
+martRouter.get('/global/stores',run(async(req,res)=>{const input=globalDiscoverySchema.omit({storeId:true}).parse(req.query);res.setHeader('Cache-Control','public,max-age=15');res.json(await globalStores({marketCode:input.market,query:input.q,limit:input.limit,after:input.after}));}));
+martRouter.get('/global/stores/:id',run(async(req,res)=>{res.setHeader('Cache-Control','public,max-age=15');res.json(await globalStore(uuid.parse(req.params.id)));}));
+martRouter.get('/global/offers/:id',run(async(req,res)=>{res.setHeader('Cache-Control','public,max-age=15');res.json(await globalOffer(uuid.parse(req.params.id)));}));
 
 martRouter.get('/offers',run(async(req,res)=>{
  const parsed=discoverySchema.parse(req.query);res.setHeader('Cache-Control','public,max-age=15');res.json(await discover({query:parsed.q,limit:parsed.limit,after:parsed.after,storeId:parsed.storeId,category:parsed.category}));

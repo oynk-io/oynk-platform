@@ -44,6 +44,7 @@ const internalRoutes = [
   ["partners", "Partners", "Settlement partners", "Review partner organizations, capabilities, and activation.", "No partners found", "Settlement partner applications will appear here after registration."],
   ["payments", "Payments", "Payment operations", "Review payment activity and operational exceptions.", "No payment activity", "Platform payment records will appear here when payment processing is connected."],
   ["order-disputes", "Order disputes", "Order disputes", "Review customer fulfilment reports and control refunds.", "No order disputes", "Customer reports will appear here for independent review."],
+  ["global-mart", "Global Mart", "Global Mart & logistics", "Manage international source markets, storefront routes and logistics readiness.", "No global routes", "Configure eBay, Alibaba or another supported source market."],
   ["settlements", "Settlement network", "Settlement network", "Inspect provider orders, partial fills, corridor rates and registered-provider capacity from Soroban.", "No settlement selected", "Enter a request, fill, corridor or provider identifier to inspect its contract state."],
   ["terminals", "Terminals", "Terminal operations", "Review applications, inventory, and device incidents.", "No terminal records", "Terminal applications and managed devices will appear here as they are registered."],
   ["risk-alerts", "Risk alerts", "Risk alerts", "Review operational and compliance signals.", "No open risk alerts", "Risk signals requiring operator review will appear here."],

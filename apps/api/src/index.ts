@@ -30,6 +30,7 @@ import { reconcileCartCheckouts, reconcileCartSettlements } from './mart/cart.js
 import { queueExpiredLayawayRefunds, reconcileMartRefunds } from './mart/refunds.js';
 import { deliverMartPushNotifications } from './mart/notifications.js';
 import { oynkGoRouter } from './oynkGo/routes.js';
+import { globalMartControlRouter } from './mart/globalControl.js';
 
 const app = express();
 app.set("trust proxy", config.TRUST_PROXY_HOPS);
@@ -89,6 +90,7 @@ app.use('/api/newsletter',newsletterRouter);
 // by internal-organization RBAC and CSRF on every mutation.
 app.use('/api/control/ramps',rampControlRouter);
 app.use('/api/control/businesses',businessControlRouter);
+app.use('/api/control/mart',globalMartControlRouter);
 
 const stopChainReconciliation = startChainActivityReconciliation();
 server.listen(config.API_PORT, "0.0.0.0", () => {
