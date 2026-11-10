@@ -2,27 +2,62 @@
 title: "Oynk full technical architecture"
 mode: "wide"
 ---
-**Architecture status:** Working architecture, August 2026.
 
-This document consolidates Oynk's complete technical architecture into one review surface. Its primary purpose is to specify the SCF Integration Track work: how Privy, Stellar Wallets Kit, Anchor Platform, Blend v2, Stellar USDC, and Oynk's Soroban coordination and settlement protocol combine into one commercial-payment lifecycle. It also covers the implemented monorepo, identity and compliance foundation, BSC and Solana visibility plane, the separately deployed Stellar mainnet settlement MVP, data and API boundaries, and operational controls.
+This document describes Oynk's technical architecture, existing infrastructure, and planned development under the Stellar Community Fund (SCF) Build Award.
 
-The Stellar mainnet MVP is deployed at [`CDTDCQ2Y6OASQVJGOFBA2EHP3AV7N6FFULJNEFGMORLYMNHECX7OO2W6`](https://stellar.expert/explorer/public/contract/CDTDCQ2Y6OASQVJGOFBA2EHP3AV7N6FFULJNEFGMORLYMNHECX7OO2W6). It was created on July 11, 2026 in [transaction `58eb6b55…d2fa0`](https://stellar.expert/explorer/public/tx/58eb6b55c774aeff2a54b90358fe459bf60f0089113b45caa6f697ef100d2fa0). On September 3, 2026, WASM `d16b5f8a2b9971e2ea45bf0737731ed6348bd83b7c30fde275589f69ea132bc9` was [uploaded](https://stellar.expert/explorer/public/tx/a59c25cd5c913938e8d759a7055ae4dd3b3e560b0fc650450bb57401540d8737) and the existing instance was [upgraded](https://stellar.expert/explorer/public/tx/cc80ceb25ca42487a486aa297c8f497637b1a246395303d88f1a24f7f42cf1a4) by its administrator. The live WASM was fetched after confirmation and matched the artifact built from source commit [`60489c3`](https://github.com/oynk-io/settlement-aggregator-protocol/commit/60489c36f9e69aeea54e4075948e5b3e2083d440). Source, locked tests, and structured deployment evidence are maintained by [Emmanuel Ekoja](https://github.com/emmanuelekoja) in the [`settlement-aggregator-protocol`](https://github.com/oynk-io/settlement-aggregator-protocol) repository. The original July WASM hash remains recorded as source-unverified historical provenance.
+Oynk is a permissioned liquidity and settlement network that connects businesses with qualified liquidity providers across payment corridors. Providers compete to fulfill payment requests by offering exchange rates, available liquidity, and settlement terms. Oynk coordinates provider selection, rate locking, payment execution, and reconciliation, using Stellar and Soroban for programmable settlement.
 
-The mainnet MVP completed three settlement lifecycles using real USDC. With seven token decimals, the deposited principals normalize to 500, 1,500, and 2,360 USDC, totaling **4,360 USDC of settlement principal**. This measure counts each request once rather than double-counting its escrow deposit and subsequent claim.
+The proposed SCF scope integrates **Stellar Anchor Platform (SEP-10, SEP-12, SEP-31, and SEP-38), Circle CCTP, Soroswap, and Oynk's existing Soroban settlement protocol** into a unified payment lifecycle. It also introduces provider and corridor management, competitive quoting, security hardening, monitoring, and end-to-end reconciliation.
 
-## 1. Executive summary
+The document distinguishes existing functionality from proposed development. It covers Oynk's implemented application infrastructure, identity and compliance foundation, blockchain visibility services, deployed Soroban MVP, data and API boundaries, and planned integration and operational controls.
 
-Oynk is designed as programmable infrastructure between payment demand and local financial capability. Payment applications use a consistent lifecycle while qualified liquidity and settlement providers execute corridor-specific collection, conversion, digital-asset, and payout legs.
+### Existing Stellar Mainnet MVP
 
-The architecture separates five concerns:
+Oynk has an existing Soroban settlement MVP deployed on Stellar Mainnet at:
 
-1. **Experience:** public web, payment experiences, and organization-specific operations consoles.
-2. **Control plane:** identity, authorization, exact-value validation, compliance policy, quotes, provider selection, payment state, and authoritative references.
-3. **Provider plane:** qualified participants that supply liquidity, banking connectivity, collection, exchange, and destination payout.
-4. **Settlement plane:** the deployed Soroban MVP and its proposed hardened successor governing funding, commitments, claims, refunds, and disputes.
-5. **Visibility plane:** chain indexers, normalized PostgreSQL records, reconciliation, metrics, and operational dashboards.
+`CDTDCQ2Y6OASQVJGOFBA2EHP3AV7N6FFULJNEFGMORLYMNHECX7OO2W6`
 
-The design deliberately separates observed blockchain movement from verified business settlement. A chain transaction proves accepted ledger activity; it does not prove customer authorization, provider eligibility, fiat delivery, or end-to-end payment completion.
+The contract was deployed on July 11, 2026, through [this transaction](https://stellar.expert/explorer/public/tx/58eb6b55c774aeff2a54b90358fe459bf60f0089113b45caa6f697ef100d2fa0).
+
+On September 3, 2026, an updated WASM artifact (`d16b5f8a2b9971e2ea45bf0737731ed6348bd83b7c30fde275589f69ea132bc9`) was [uploaded](https://stellar.expert/explorer/public/tx/a59c25cd5c913938e8d759a7055ae4dd3b3e560b0fc650450bb57401540d8737) and the contract was [upgraded](https://stellar.expert/explorer/public/tx/cc80ceb25ca42487a486aa297c8f497637b1a246395303d88f1a24f7f42cf1a4).
+
+The deployed WASM was verified against the artifact built from [source commit ](https://github.com/oynk-io/settlement-aggregator-protocol/commit/60489c36f9e69aeea54e4075948e5b3e2083d440)`60489c3`. Source code, tests, and deployment evidence are available in the [settlement-aggregator-protocol repository](https://github.com/oynk-io/settlement-aggregator-protocol). The original July WASM remains recorded as historical provenance without source verification.
+
+The MVP has completed **three mainnet settlement lifecycles totaling 4,360 USDC in unique settlement principal** (500, 1,500, and 2,360 USDC). Each settlement is counted once, excluding duplicate counting of escrow funding and subsequent claims.
+
+These transactions demonstrate the existing settlement contract's functionality. They are not presented as evidence that the complete proposed provider-routing and payment-orchestration system has already been implemented.
+
+## 1. Executive Summary
+
+Oynk is a permissioned liquidity discovery and settlement coordination network built around Stellar and Soroban.
+
+Businesses submit payment requests, and eligible liquidity providers compete to fulfill them based on supported corridors, exchange rates, fees, and available capacity. Oynk selects and locks an accepted quote, coordinates the required payment legs, and reconciles settlement evidence.
+
+Rather than replacing banks, payment service providers, or decentralized exchanges, Oynk connects these services through a unified payment infrastructure.
+
+The architecture consists of five layers:
+
+1. **Experience Layer:** Business applications, payment interfaces, provider consoles, and operational dashboards.
+2. **Control Plane:** Identity, authorization, compliance policies, provider eligibility, competitive quotes, rate locks, payment orchestration, and authoritative transaction references.
+3. **Provider and Liquidity Layer:** Qualified liquidity providers, banking and payout partners, Circle CCTP for cross-chain USDC transfers, and Soroswap for optional asset conversion.
+4. **Settlement Layer:** Oynk's existing Soroban protocol, extended with stronger escrow controls, authorization, claims, refunds, disputes, and auditable settlement events.
+5. **Visibility and Reconciliation Layer:** Blockchain indexing, payment-state tracking, provider evidence, PostgreSQL records, monitoring, reconciliation, and reporting.
+
+### Development Scope
+
+The existing platform provides application, identity, compliance, and blockchain-observability foundations alongside a separately deployed Soroban settlement MVP.
+
+The proposed SCF development will integrate Anchor Platform, implement the provider and quote engine, add CCTP and Soroswap liquidity routing, harden Soroban settlement, and deliver unified payment reconciliation, security controls, and monitoring.
+
+All grant-funded milestones are scoped to **Stellar Testnet**. Any independently funded mainnet deployment or commercial operation remains outside the SCF-funded deliverables.
+
+### Settlement Integrity
+
+Oynk distinguishes blockchain execution from verified commercial settlement.
+
+A confirmed blockchain transaction proves that an onchain operation occurred. It does not independently establish customer authorization, provider eligibility, fiat payout completion, or fulfillment of every payment obligation.
+
+A payment is considered complete only when its required onchain and offchain settlement evidence has been validated and reconciled.
 
 ## 2. Goals and Non-Goals
 
